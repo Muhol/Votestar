@@ -6,7 +6,7 @@ import Footer from './components/Footer';
 import useSWR, { mutate } from 'swr';
 import { fetcher } from '../lib/api';
 import FeedItem from './components/FeedItem';
-import { Sparkles, TrendingUp, PlusCircle } from 'lucide-react';
+import { Sparkles, TrendingUp, PlusCircle, Star } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
@@ -62,7 +62,7 @@ export default function Home() {
         {/* Main Feed Column */}
         <div className="flex-grow md:max-w-2xl">
           {/* Create Post/Proposal CTA */}
-          <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 mb-6 flex items-center gap-4">
+          <div className="hidden md:flex bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 mb-6 items-center gap-4">
             <Link href="/profile">
               <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center font-bold">
                 {user.email[0].toUpperCase()}
@@ -165,8 +165,8 @@ export default function Home() {
             </div>
 
             {/* Footer Links (Lite) */}
-            <div className="px-4 text-[11px] text-gray-400 leading-6">
-              <p>© 2026 Votestar Protocol • Decentered Governance • Terms of Service • Privacy Policy • Cookie Policy • Accessibility • Ads info • More •</p>
+            <div className="px-4 text-[11px] text-gray-400 leading-6 flex flex-wrap items-center">
+              <p className="flex items-center">© 2026 Votest<Star size={11} className="fill-accent text-accent mx-0.5" />r Protocol • Decentered Governance • Terms of Service • Privacy Policy • Cookie Policy • Accessibility • Ads info • More •</p>
             </div>
           </div>
         </aside>

@@ -1,3 +1,4 @@
+import { Star } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Footer() {
@@ -5,8 +6,8 @@ export default function Footer() {
         <footer className="bg-black text-white py-20 px-4 md:px-8 border-t border-accent/20">
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center space-y-12 md:space-y-0">
                 <div>
-                    <h2 className="text-3xl font-black tracking-tighter mb-4">
-                        VOTESTAR<span className="text-accent">.</span>
+                    <h2 className="text-3xl font-black tracking-tighter mb-4 flex items-center">
+                        VOTEST<Star size={20} className="fill-accent text-accent mx-1" />R<span className="text-accent">.</span>
                     </h2>
                     <p className="text-gray-400 max-w-sm font-medium">
                         The immutable ledger for a global social democracy.
@@ -36,7 +37,7 @@ export default function Footer() {
             </div>
 
             <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between text-xs text-gray-500 font-bold uppercase tracking-widest">
-                <p>© 2026 VoteStar Protocol. All rights reserved.</p>
+                <p className="flex items-center">© 2026 Votest<Star size={11} className="fill-accent text-accent mx-0.5" />r Protocol. All rights reserved.</p>
                 <div className="flex space-x-8 mt-4 md:mt-0">
                     <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
                     <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>

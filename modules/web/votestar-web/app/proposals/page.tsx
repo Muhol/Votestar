@@ -16,47 +16,6 @@ import FeedItem from '../components/FeedItem';
 export default function ProposalHubPage() {
     const { user } = useAuth();
     const { data: proposals, isLoading } = useSWR('/proposals', fetcher);
-    const [isProposing, setIsProposing] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [success, setSuccess] = useState(false);
-
-    // Form State
-    const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
-
-    const handlePropose = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!user) return;
-
-        setIsSubmitting(true);
-        try {
-            const response = await fetch('/api/proxy/proposals', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name,
-                    description,
-                    start_time: new Date().toISOString(),
-                    end_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days duration
-                })
-            });
-
-            if (response.ok) {
-                setSuccess(true);
-                mutate('/proposals');
-                setTimeout(() => {
-                    setIsProposing(false);
-                    setSuccess(false);
-                    setName("");
-                    setDescription("");
-                }, 2000);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
     const handleSign = async (id: string) => {
         try {
@@ -90,13 +49,13 @@ export default function ProposalHubPage() {
                     </div>
 
                     {user && (
-                        <button
-                            onClick={() => setIsProposing(true)}
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-sm hover:opacity-90 transition-opacity whitespace-nowrap"
+                        <Link
+                            href="/proposals/new"
+                            className="hidden md:inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-sm hover:opacity-90 transition-opacity whitespace-nowrap"
                         >
                             <Plus size={18} />
                             <span>New Proposal</span>
-                        </button>
+                        </Link>
                     )}
                 </header>
 
@@ -181,65 +140,6 @@ export default function ProposalHubPage() {
                     </aside>
                 </div>
             </main>
-
-            {/* Propose Modal */}
-            {isProposing && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center p-6">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isSubmitting && setIsProposing(false)}></div>
-                    <div className="relative w-full max-w-xl bg-white dark:bg-black rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
-                        {success ? (
-                            <div className="py-12 text-center">
-                                <CheckCircle2 size={48} className="mx-auto text-accent mb-4" />
-                                <h2 className="text-2xl font-bold text-black dark:text-white mb-2">Proposal Live</h2>
-                                <p className="text-sm text-gray-500">Your idea has been appended to the Hub.</p>
-                            </div>
-                        ) : (
-                            <form onSubmit={handlePropose}>
-                                <h2 className="text-2xl font-bold text-black dark:text-white mb-6">New Consensus Idea</h2>
-                                <div className="space-y-4 mb-8">
-                                    <div>
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block mb-1.5 ml-1">Category Name</label>
-                                        <input
-                                            required
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            placeholder="e.g. Sustainable Cities 2026"
-                                            className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-xl p-4 text-sm font-semibold focus:ring-2 ring-accent outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block mb-1.5 ml-1">Description</label>
-                                        <textarea
-                                            required
-                                            value={description}
-                                            onChange={(e) => setDescription(e.target.value)}
-                                            rows={4}
-                                            placeholder="Describe the scope and mission..."
-                                            className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-xl p-4 text-sm font-medium focus:ring-2 ring-accent outline-none"
-                                        ></textarea>
-                                    </div>
-                                </div>
-                                <div className="flex gap-3">
-                                    <button
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="flex-grow py-4 bg-black dark:bg-white text-white dark:text-black rounded-xl font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-                                    >
-                                        {isSubmitting ? <Loader2 className="animate-spin mx-auto text-accent" /> : "Broadcast Proposal"}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsProposing(false)}
-                                        className="px-6 py-4 text-gray-500 font-bold text-sm hover:text-black dark:hover:text-white transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </form>
-                        )}
-                    </div>
-                </div>
-            )}
 
             <Footer />
         </div>

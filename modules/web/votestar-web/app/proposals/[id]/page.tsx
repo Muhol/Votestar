@@ -8,7 +8,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import UserCard from '../../components/UserCard';
 import Avatar from '../../components/Avatar';
-import { ChevronLeft, Heart, ShieldCheck, Users, Info, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Heart, ShieldCheck, Users, Info, CheckCircle2, Star } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProposalDetailPage() {
@@ -123,8 +123,8 @@ export default function ProposalDetailPage() {
                             <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6 px-1">Recent Supporters</h2>
                             <div className="grid grid-cols-4 sm:grid-cols-6 gap-4">
                                 {proposal.supporters?.map((sup: any) => (
-                                    <Link 
-                                        key={sup.id} 
+                                    <Link
+                                        key={sup.id}
                                         href={`/profile/${sup.id}`}
                                         className="flex flex-col items-center gap-2 group/avatar"
                                     >
@@ -169,8 +169,8 @@ export default function ProposalDetailPage() {
                                     onClick={handleSign}
                                     disabled={proposal.has_signed}
                                     className={`w-full py-4 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${proposal.has_signed
-                                            ? 'bg-green-500/10 text-green-500 cursor-default'
-                                            : 'bg-black dark:bg-white text-white dark:text-black hover:opacity-90 active:scale-[0.98]'
+                                        ? 'bg-green-500/10 text-green-500 cursor-default'
+                                        : 'bg-black dark:bg-white text-white dark:text-black hover:opacity-90 active:scale-[0.98]'
                                         }`}
                                 >
                                     {proposal.has_signed ? (
@@ -186,8 +186,8 @@ export default function ProposalDetailPage() {
                                     )}
                                 </button>
 
-                                <p className="text-[10px] text-gray-400 text-center mt-4 px-2 leading-relaxed font-medium">
-                                    By signing, you append your immutable identifier to this proposal on the Votestar ledger.
+                                <p className="text-[10px] text-gray-400 text-center mt-4 px-2 leading-relaxed font-medium flex items-center justify-center">
+                                    By signing, you append your immutable identifier to this proposal on the Votest<Star size={11} className="fill-accent text-accent mx-0.5" />r ledger.
                                 </p>
                             </div>
 

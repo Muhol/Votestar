@@ -13,6 +13,12 @@ export const auth0 = new Auth0Client({
         logout: '/api/auth/logout',
         callback: '/api/auth/callback',
     },
+    session: {
+        cookie: {
+            secure: false, // Required for http://localhost
+            sameSite: 'lax'
+        }
+    },
     authorizationParameters: {
         audience: process.env.AUTH0_AUDIENCE,
         scope: 'openid profile email'

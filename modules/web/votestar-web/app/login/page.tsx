@@ -1,9 +1,9 @@
 "use client";
 
+import { ShieldCheck, Fingerprint, Lock, Mail, ArrowRight, Loader2, Star } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../components/AuthProvider';
-import { ShieldCheck, Fingerprint, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -51,8 +51,8 @@ export default function LoginPage() {
                             <div className="h-16 w-16 bg-accent/10 rounded-3xl flex items-center justify-center mb-8 border border-accent/20">
                                 <ShieldCheck size={32} className="text-accent" />
                             </div>
-                            <h1 className="text-4xl font-black text-black dark:text-white leading-none mb-4">
-                                Welcome to Votestar
+                            <h1 className="text-4xl font-black text-black dark:text-white leading-none mb-4 flex items-center">
+                                Welcome to Votest<Star size={28} className="fill-accent text-accent mx-1" />r
                             </h1>
                             <p className="text-gray-500 dark:text-gray-400 font-medium mb-10 text-lg leading-relaxed">
                                 Join the global consensus protocol. Your identity is your power.

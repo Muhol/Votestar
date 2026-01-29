@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Bell, Search } from 'lucide-react';
+import { Menu, X, Bell, Search, Star } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from './AuthProvider';
 import Avatar from './Avatar';
@@ -19,16 +19,16 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/95 dark:bg-black/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
+    <nav className="sticky top-0 z-50 bg-white/10 dark:bg-black/10 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="h-8 w-8 bg-accent rounded-lg flex items-center justify-center">
+            {/* <div className="hidden md:block h-8 w-8 bg-accent rounded-lg flex items-center justify-center">
               <span className="text-black font-black text-lg">V</span>
-            </div>
-            <span className="text-lg font-bold text-black dark:text-white hidden sm:block">
-              Votestar
+            </div> */}
+            <span className="text-lg font-bold text-black dark:text-white flex items-center">
+              Votest<Star size={14} className="fill-accent text-accent mx-[1px]" />r<span className='text-accent font-extrabold'>.</span>
             </span>
           </Link>
 
@@ -38,11 +38,10 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
-                className={`text-sm font-semibold transition-colors ${
-                  pathname === link.href 
-                    ? 'text-black dark:text-white' 
-                    : 'text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white'
-                }`}
+                className={`text-sm font-semibold transition-colors ${pathname === link.href
+                  ? 'text-black dark:text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white'
+                  }`}
               >
                 {link.name}
               </Link>
@@ -53,17 +52,17 @@ export default function Navbar() {
           <div className="flex items-center gap-4">
             {user ? (
               <>
-                <button className="hidden md:block p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors">
+                <button className=" md:block p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors">
                   <Search size={20} />
                 </button>
-                <button className="hidden md:block p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors relative">
+                <button className=" md:block p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors relative">
                   <Bell size={20} />
                   <span className="absolute top-1 right-1 h-2 w-2 bg-accent rounded-full"></span>
                 </button>
                 <div className="relative group hidden md:block">
                   <Link href="/profile" className="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-white/5 rounded-full transition-all">
-                    <Avatar 
-                      name={user.email.split('@')[0]} 
+                    <Avatar
+                      name={user.email.split('@')[0]}
                       size="sm"
                       className="ring-2 ring-transparent rounded-full group-hover:ring-accent/50 transition-all"
                     />
@@ -76,17 +75,17 @@ export default function Navbar() {
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Authenticated Citizen</p>
                         <p className="text-sm font-bold text-black dark:text-white truncate">{user.email}</p>
                       </div>
-                      
+
                       <Link href="/profile" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-colors text-sm font-bold text-gray-600 dark:text-gray-300">
                         View Profile
                       </Link>
                       <Link href="/admin" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-colors text-sm font-bold text-gray-600 dark:text-gray-300">
                         Admin Vault
                       </Link>
-                      
+
                       <div className="h-px bg-gray-50 dark:bg-gray-900 my-1 mx-2"></div>
-                      
-                      <button 
+
+                      <button
                         onClick={() => logout()}
                         className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 rounded-2xl transition-colors text-sm font-bold text-red-500"
                       >
@@ -106,12 +105,14 @@ export default function Navbar() {
             )}
 
             {/* Mobile menu button */}
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="md:hidden p-2 text-gray-600 dark:text-gray-400"
-            >
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            {!user && (
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="md:hidden p-2 text-gray-600 dark:text-gray-400"
+              >
+                {isOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -125,16 +126,15 @@ export default function Navbar() {
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
-                className={`block py-2 text-base font-semibold ${
-                  pathname === link.href 
-                    ? 'text-black dark:text-white' 
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}
+                className={`block py-2 text-base font-semibold ${pathname === link.href
+                  ? 'text-black dark:text-white'
+                  : 'text-gray-600 dark:text-gray-400'
+                  }`}
               >
                 {link.name}
               </Link>
             ))}
-            
+
             <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
               {user ? (
                 <>

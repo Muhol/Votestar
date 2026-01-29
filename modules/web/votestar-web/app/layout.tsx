@@ -7,6 +7,7 @@ export const metadata: Metadata = {
 };
 
 import { AuthProvider } from "./components/AuthProvider";
+import BottomNav from "./components/BottomNav";
 
 export default function RootLayout({
   children,
@@ -20,6 +21,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           {children}
+          <BottomNav />
         </AuthProvider>
       </body>
     </html>
