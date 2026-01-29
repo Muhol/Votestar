@@ -3,7 +3,7 @@
 import { useAuth } from './components/AuthProvider';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { fetcher } from '../lib/api';
 import FeedItem from './components/FeedItem';
 import { Sparkles, TrendingUp, PlusCircle } from 'lucide-react';

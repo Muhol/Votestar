@@ -58,7 +58,7 @@ function AuthBridge({ children }: { children: ReactNode }) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   return (
-    <Auth0Provider profileUrl="/api/auth/profile">
+    <Auth0Provider>
       <AuthBridge>
         {children}
       </AuthBridge>

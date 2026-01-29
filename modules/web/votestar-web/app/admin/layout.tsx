@@ -14,8 +14,8 @@ export default function AdminLayout({
     return (
         <div className="min-h-screen bg-white dark:bg-black">
             {/* Mobile Header */}
-            <div className="lg:hidden flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10 bg-white dark:bg-black sticky top-0 z-40">
-                <h1 className="text-xl font-bold text-black dark:text-white">Votestar<span className="text-accent">.</span></h1>
+            <div className="lg:hidden flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-900 bg-white dark:bg-black sticky top-0 z-40">
+                <h1 className="text-xl font-black text-black dark:text-white">Star<span className="text-accent underline decoration-2 underline-offset-4">Vault</span></h1>
                 <button
                     onClick={() => setIsSidebarOpen(true)}
                     className="p-2 text-black dark:text-white"

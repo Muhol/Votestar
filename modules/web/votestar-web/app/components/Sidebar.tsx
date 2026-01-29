@@ -25,18 +25,18 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose
                 />
             )}
 
-            <div className={`h-screen w-64 bg-white dark:bg-black text-black dark:text-white border-r border-black/10 dark:border-white/10 flex flex-col fixed left-0 top-0 z-50 transition-transform duration-300 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                <div className="p-6 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
+            <div className={`h-screen w-64 bg-white dark:bg-black text-black dark:text-white border-r border-gray-100 dark:border-gray-900 flex flex-col fixed left-0 top-0 z-50 transition-transform duration-300 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="p-8 border-b border-gray-100 dark:border-gray-900 flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-black dark:text-white">Votestar<span className="text-accent">.</span></h1>
-                        <p className="text-sm text-accent uppercase tracking-widest mt-1">Admin</p>
+                        <h1 className="text-2xl font-black text-black dark:text-white">Star<span className="text-accent underline decoration-4 underline-offset-4">Vault</span></h1>
+                        <p className="text-[11px] font-bold text-gray-400 capitalize mt-2">Administrative Protocol</p>
                     </div>
                     <button className="lg:hidden p-2 text-black dark:text-white" onClick={onClose}>
-                        <X size={24} />
+                        <X size={20} />
                     </button>
                 </div>
 
-                <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                <nav className="flex-1 p-6 space-y-1 overflow-y-auto">
                     {links.map((link) => {
                         const isActive = pathname === link.href;
                         return (
@@ -44,9 +44,9 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose
                                 key={link.href}
                                 href={link.href}
                                 onClick={onClose}
-                                className={`block px-4 py-3 rounded-r-lg transition-all duration-200 font-bold border-l-4 ${isActive
-                                    ? 'border-accent bg-accent text-black shadow-md'
-                                    : 'border-transparent text-secondary hover:bg-accent/10 hover:text-black dark:text-white dark:hover:text-white'
+                                className={`flex items-center px-4 py-3 rounded-xl transition-all duration-200 font-semibold text-sm ${isActive
+                                    ? 'bg-accent/10 text-accent ring-1 ring-accent/20'
+                                    : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-black dark:hover:text-white'
                                     }`}
                             >
                                 {link.label}
@@ -55,14 +55,14 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-black/10 dark:border-white/10">
-                    <div className="flex items-center space-x-3">
-                        <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center text-black text-xs font-bold">
+                <div className="p-6 border-t border-gray-100 dark:border-gray-900">
+                    <div className="flex items-center space-x-3 bg-gray-50 dark:bg-white/5 p-4 rounded-2xl">
+                        <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center text-black text-sm font-black ring-2 ring-white dark:ring-black">
                             AD
                         </div>
-                        <div>
-                            <p className="text-sm font-bold">Admin User</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Super Admin</p>
+                        <div className="min-w-0">
+                            <p className="text-xs font-bold truncate">Admin User</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Superuser</p>
                         </div>
                     </div>
                 </div>

@@ -8,7 +8,7 @@ import Link from 'next/link';
 interface FeedItemProps {
     userId: string;
     userName: string;
-    userType?: string;
+    userType?: 'INDIVIDUAL' | 'ORGANIZATION';
     isVerified?: boolean;
     timestamp: string;
     content: ReactNode;
