@@ -10,8 +10,8 @@ export async function GET(
   const { auth0: route } = await params;
 
   try {
-    // Specialized handler for /profile to merge backend metadata
-    if (route === 'profile') {
+    // Specialized handler for /me to merge backend metadata
+    if (route === 'me') {
       const session = await auth0.getSession();
       if (!session) return new Response(null, { status: 204 });
 

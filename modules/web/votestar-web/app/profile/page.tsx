@@ -12,30 +12,31 @@ import VerifiedBadge from '../components/VerifiedBadge';
 import Avatar from '../components/Avatar';
 
 export default function ProfilePage() {
-    const { user, isLoading: authLoading } = useAuth();
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const { user, logout, isLoading: authLoading } = useAuth();
     const [activeTab, setActiveTab] = useState<'ledger' | 'activity'>('ledger');
-    
+
     // Fetch voting history
     const { data: history, isLoading: historyLoading } = useSWR(
-        user ? `/users/${user.id}/votes` : null, 
+        user ? `/users/${user.id}/votes` : null,
         fetcher
     );
 
     // Fetch followers list
     const { data: followers } = useSWR(
-        user ? `/users/${user.id}/followers` : null, 
+        user ? `/users/${user.id}/followers` : null,
         fetcher
     );
 
     if (authLoading) return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-sm font-semibold text-gray-400">Loading Profile...</span>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black">
+            <div className="flex flex-col items-center gap-4">
+                <div className="h-10 w-10 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm font-semibold text-gray-400">Loading Profile...</span>
+            </div>
         </div>
-      </div>
     );
-    
+
     if (!user) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-400">Unauthorized Access</div>;
 
     const stats = {
@@ -57,7 +58,7 @@ export default function ProfilePage() {
                         <Avatar 
                           name={stats.name} 
                           size="xxl" 
-                          className="h-50 flex justify-center"
+                          className="h-50 flex justify-center rounded-full"
                         />
                     </div>
                 </div>
@@ -88,32 +89,59 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    <div className="flex gap-3 w-full md:w-auto">
+                    <div className="flex gap-3 w-full md:w-auto relative">
                         <button className="flex-grow md:flex-none px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-sm hover:opacity-90 transition-opacity">
                             Edit Profile
                         </button>
-                        <button className="p-2.5 border border-gray-200 dark:border-gray-800 rounded-full hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                            <Settings size={20} className="text-gray-600 dark:text-gray-400" />
-                        </button>
+
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                                className={`p-2.5 border rounded-full transition-all ${isSettingsOpen ? 'bg-black text-white dark:bg-white dark:text-black border-transparent shadow-lg' : 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                            >
+                                <Settings size={20} />
+                            </button>
+
+                            {/* Settings Menu */}
+                            {isSettingsOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setIsSettingsOpen(false)}></div>
+                                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <p className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Account Settings</p>
+                                        <button className="w-full text-left px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-colors text-sm font-bold text-gray-600 dark:text-gray-300">
+                                            Edit Identity
+                                        </button>
+                                        <button className="w-full text-left px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-colors text-sm font-bold text-gray-600 dark:text-gray-300">
+                                            Privacy Controls
+                                        </button>
+                                        <div className="h-px bg-gray-50 dark:bg-gray-900 my-1 mx-2"></div>
+                                        <button
+                                            onClick={() => logout()}
+                                            className="w-full text-left px-4 py-2.5 hover:bg-red-500/10 rounded-2xl transition-colors text-sm font-bold text-red-500"
+                                        >
+                                            Logout Session
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Tabs */}
                 <div className="mt-12 border-b border-gray-100 dark:border-gray-900 flex justify-center gap-12">
-                    <button 
-                      onClick={() => setActiveTab('ledger')}
-                      className={`pb-4 text-sm font-bold uppercase tracking-widest flex items-center gap-2 border-b-2 transition-all ${
-                        activeTab === 'ledger' ? 'text-black dark:text-white border-black dark:border-white' : 'text-gray-400 border-transparent'
-                      }`}
+                    <button
+                        onClick={() => setActiveTab('ledger')}
+                        className={`pb-4 text-sm font-bold uppercase tracking-widest flex items-center gap-2 border-b-2 transition-all ${activeTab === 'ledger' ? 'text-black dark:text-white border-black dark:border-white' : 'text-gray-400 border-transparent'
+                            }`}
                     >
                         <Grid size={16} />
                         Ledger
                     </button>
-                    <button 
-                      onClick={() => setActiveTab('activity')}
-                      className={`pb-4 text-sm font-bold uppercase tracking-widest flex items-center gap-2 border-b-2 transition-all ${
-                        activeTab === 'activity' ? 'text-black dark:text-white border-black dark:border-white' : 'text-gray-400 border-transparent'
-                      }`}
+                    <button
+                        onClick={() => setActiveTab('activity')}
+                        className={`pb-4 text-sm font-bold uppercase tracking-widest flex items-center gap-2 border-b-2 transition-all ${activeTab === 'activity' ? 'text-black dark:text-white border-black dark:border-white' : 'text-gray-400 border-transparent'
+                            }`}
                     >
                         <List size={16} />
                         Activity

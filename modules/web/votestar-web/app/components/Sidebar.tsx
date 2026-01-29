@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { X } from 'lucide-react';
+import { X, LogOut } from 'lucide-react';
+import { useAuth } from './AuthProvider';
 
 export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () => void }) {
     const pathname = usePathname();
+    const { logout } = useAuth();
 
     const links = [
         { href: '/admin', label: 'Overview' },
@@ -55,7 +57,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose
                     })}
                 </nav>
 
-                <div className="p-6 border-t border-gray-100 dark:border-gray-900">
+                <div className="p-6 border-t border-gray-100 dark:border-gray-900 space-y-4">
                     <div className="flex items-center space-x-3 bg-gray-50 dark:bg-white/5 p-4 rounded-2xl">
                         <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center text-black text-sm font-black ring-2 ring-white dark:ring-black">
                             AD
@@ -65,6 +67,14 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose
                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Superuser</p>
                         </div>
                     </div>
+                    
+                    <button 
+                        onClick={() => logout()}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold text-gray-500 hover:text-red-500 hover:bg-red-500/5 transition-all transition-colors"
+                    >
+                        <LogOut size={16} />
+                        Logout Session
+                    </button>
                 </div>
             </div>
         </>

@@ -52,7 +52,7 @@ export default function UsersPage() {
                             </td>
                             <td className="px-8 py-6">
                                 <div className="flex items-center gap-4">
-                                    <Avatar name={user.name} size="md" className="ring-2 ring-transparent group-hover:ring-accent transition-all" />
+                                    <Avatar name={user.name} size="md" className="ring-2 ring-transparent group-hover:ring-accent rounded-full transition-all" />
                                     <div className="space-y-0.5">
                                         <p className="text-sm font-bold text-black dark:text-white">{user.name}</p>
                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Joined {user.joinDate}</p>

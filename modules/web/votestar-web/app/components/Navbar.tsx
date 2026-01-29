@@ -60,12 +60,41 @@ export default function Navbar() {
                   <Bell size={20} />
                   <span className="absolute top-1 right-1 h-2 w-2 bg-accent rounded-full"></span>
                 </button>
-                <Link href="/profile" className="hidden md:block">
-                  <Avatar 
-                    name={user.email.split('@')[0]} 
-                    size="sm"
-                  />
-                </Link>
+                <div className="relative group hidden md:block">
+                  <Link href="/profile" className="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-white/5 rounded-full transition-all">
+                    <Avatar 
+                      name={user.email.split('@')[0]} 
+                      size="sm"
+                      className="ring-2 ring-transparent rounded-full group-hover:ring-accent/50 transition-all"
+                    />
+                  </Link>
+
+                  {/* Hover Submenu */}
+                  <div className="absolute right-0 top-full pt-2 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
+                    <div className="w-56 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl p-2">
+                      <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-900 mb-1">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Authenticated Citizen</p>
+                        <p className="text-sm font-bold text-black dark:text-white truncate">{user.email}</p>
+                      </div>
+                      
+                      <Link href="/profile" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-colors text-sm font-bold text-gray-600 dark:text-gray-300">
+                        View Profile
+                      </Link>
+                      <Link href="/admin" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-colors text-sm font-bold text-gray-600 dark:text-gray-300">
+                        Admin Vault
+                      </Link>
+                      
+                      <div className="h-px bg-gray-50 dark:bg-gray-900 my-1 mx-2"></div>
+                      
+                      <button 
+                        onClick={() => logout()}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 rounded-2xl transition-colors text-sm font-bold text-red-500"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </>
             ) : (
               <Link

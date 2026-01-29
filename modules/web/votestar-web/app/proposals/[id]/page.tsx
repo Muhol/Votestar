@@ -128,7 +128,7 @@ export default function ProposalDetailPage() {
                                         href={`/profile/${sup.id}`}
                                         className="flex flex-col items-center gap-2 group/avatar"
                                     >
-                                        <Avatar name={sup.name} size="md" className="group-hover/avatar:ring-2 ring-accent transition-all" />
+                                        <Avatar name={sup.name} size="md" className="border-2 border-gray-200/30 group-hover/avatar:border-accent rounded-full transition-all" />
                                         <span className="text-[10px] font-bold text-gray-500 truncate w-full text-center group-hover/avatar:text-accent transition-colors">{sup.name}</span>
                                     </Link>
                                 ))}

@@ -57,7 +57,7 @@ export default function SocialProfilePage() {
                         <Avatar 
                           name={profile.name} 
                           size="xxl" 
-                          className="h-50 flex justify-center ring-4 ring-white dark:ring-black shadow-2xl"
+                          className="h-50 flex justify-center rounded-full"
                         />
                     </div>
                 </div>
