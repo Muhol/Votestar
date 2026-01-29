@@ -7,7 +7,7 @@ export default function Footer() {
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center space-y-12 md:space-y-0">
                 <div>
                     <h2 className="text-3xl font-black tracking-tighter mb-4 flex items-center">
-                        VOTEST<Star size={20} className="fill-accent text-accent mx-1" />R<span className="text-accent">.</span>
+                        Votest<Star size={20} className="fill-accent text-accent mx-1" />r<span className="text-accent">.</span>
                     </h2>
                     <p className="text-gray-400 max-w-sm font-medium">
                         The immutable ledger for a global social democracy.
