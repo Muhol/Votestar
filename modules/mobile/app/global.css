@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+  Standard Tailwind v3 directives.
+  Using these to resolve the Metro bundling hang.
+*/

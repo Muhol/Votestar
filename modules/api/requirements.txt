@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlmodel
+asyncpg
+greenlet
+pydantic-settings
+httpx
+pytest
+python-jose[cryptography]
+python-dotenv
