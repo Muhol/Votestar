@@ -25,6 +25,16 @@ async def follow_user(
         if current_user.id == target_user.id:
             raise HTTPException(status_code=400, detail="Self-following is not permitted.")
         
+        # Check for blocks
+        from app.models.generic import UserBlock
+        block_check = select(UserBlock.id).where(
+            ((UserBlock.blocker_id == current_user.id) & (UserBlock.blocked_id == target_user.id)) |
+            ((UserBlock.blocker_id == target_user.id) & (UserBlock.blocked_id == current_user.id))
+        )
+        block_res = await session.execute(block_check)
+        if block_res.scalar_one_or_none():
+            raise HTTPException(status_code=403, detail="Social interaction blocked.")
+
         # 2. Create Follow Link
         new_follow = UserFollow(follower_id=current_user.id, followed_id=target_user.id)
         session.add(new_follow)

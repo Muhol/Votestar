@@ -51,8 +51,8 @@ export default function LoginPage() {
                             <div className="h-16 w-16 bg-accent/10 rounded-3xl flex items-center justify-center mb-8 border border-accent/20">
                                 <ShieldCheck size={32} className="text-accent" />
                             </div>
-                            <h1 className="text-4xl font-black text-black dark:text-white leading-none mb-4 flex items-center">
-                                Welcome to Votest<Star size={28} className="fill-accent text-accent mx-1" />r
+                            <h1 className="text-4xl font-black text-black dark:text-white leading-none mb-4 flex flex-col items-start">
+                                Welcome to <h1 className="text-4xl font-black text-black dark:text-white leading-none mb-4 flex items-center">Votest<Star size={26} className="fill-accent text-accent mx-0.5" />r</h1>
                             </h1>
                             <p className="text-gray-500 dark:text-gray-400 font-medium mb-10 text-lg leading-relaxed">
                                 Join the global consensus protocol. Your identity is your power.
@@ -100,11 +100,10 @@ export default function LoginPage() {
                                 <button
                                     onClick={simulateVerification}
                                     disabled={isVerifying || idNumber.length < 5}
-                                    className={`w-full py-5 rounded-3xl font-bold text-sm flex items-center justify-center transition-all ${
-                                        isVerifying 
-                                        ? 'bg-gray-100 text-gray-400 cursor-wait' 
-                                        : 'bg-accent text-black hover:shadow-xl hover:shadow-accent/20 active:scale-95 disabled:opacity-50'
-                                    }`}
+                                    className={`w-full py-5 rounded-3xl font-bold text-sm flex items-center justify-center transition-all ${isVerifying
+                                            ? 'bg-gray-100 text-gray-400 cursor-wait'
+                                            : 'bg-accent text-black hover:shadow-xl hover:shadow-accent/20 active:scale-95 disabled:opacity-50'
+                                        }`}
                                 >
                                     {isVerifying ? (
                                         <div className="flex items-center gap-3">
@@ -115,7 +114,7 @@ export default function LoginPage() {
                                         "Bind to Account"
                                     )}
                                 </button>
-                                
+
                                 <p className="text-[10px] text-center text-gray-400 font-medium px-4 leading-relaxed">
                                     Your raw ID number is never stored. We only use its cryptographic hash to ensure the integrity of the consensus wall.
                                 </p>

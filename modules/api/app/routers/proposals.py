@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
 from app.core.database import get_session
 from app.core.auth import get_current_user, get_optional_current_user
-from app.models.generic import Category, CategoryBase, User, CategoryStatus, CategoryType, CategoryProposalSignature
+from app.models.generic import Category, CategoryBase, User, CategoryStatus, CategoryType, CategoryProposalSignature, UserBlock
 from typing import Optional
 import uuid
 from datetime import datetime
@@ -58,6 +58,19 @@ async def list_proposals(
 ):
     """List all pending proposals with has_signed context."""
     try:
+        # 1. Get blocked relationships
+        blocked_user_ids = set()
+        if current_user:
+            # Users current user has blocked
+            block_query = select(UserBlock.blocked_id).where(UserBlock.blocker_id == current_user.id)
+            block_res = await session.execute(block_query)
+            blocked_user_ids.update(block_res.scalars().all())
+            
+            # Users who have blocked current user
+            blocked_by_query = select(UserBlock.blocker_id).where(UserBlock.blocked_id == current_user.id)
+            blocked_by_res = await session.execute(blocked_by_query)
+            blocked_user_ids.update(blocked_by_res.scalars().all())
+
         query = (
             select(
                 Category, 
@@ -68,6 +81,10 @@ async def list_proposals(
             .outerjoin(User, Category.creator_id == User.id)
             .where(Category.status == 'PROPOSAL')
         )
+        
+        if blocked_user_ids:
+            query = query.where(Category.creator_id.notin_(list(blocked_user_ids)))
+
         result = await session.execute(query)
         
         # Check current user's signatures
@@ -97,7 +114,8 @@ async def list_proposals(
                 "creator_name": row.creator_name.split('@')[0] if row.creator_name else "System",
                 "creator_type": row.creator_type if row.creator_type else "INDIVIDUAL",
                 "creator_verified": row.creator_verified if row.creator_verified is not None else False,
-                "has_signed": cat.id in signed_ids
+                "has_signed": cat.id in signed_ids,
+                "comments_disabled": cat.comments_disabled
             })
         return proposals
     except Exception as e:
@@ -130,6 +148,16 @@ async def get_proposal(
             raise HTTPException(status_code=404, detail="Proposal not found")
         
         cat = row.Category
+
+        # Check for blocks
+        if current_user:
+            block_check = select(UserBlock.id).where(
+                ((UserBlock.blocker_id == current_user.id) & (UserBlock.blocked_id == cat.creator_id)) |
+                ((UserBlock.blocker_id == cat.creator_id) & (UserBlock.blocked_id == current_user.id))
+            )
+            block_res = await session.execute(block_check)
+            if block_res.scalar_one_or_none():
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this proposal.")
         
         # Check current user signature
         has_signed = False
@@ -173,6 +201,7 @@ async def get_proposal(
             "creator_type": row.creator_type if row.creator_type else "INDIVIDUAL",
             "creator_verified": row.creator_verified if row.creator_verified is not None else False,
             "has_signed": has_signed,
+            "comments_disabled": cat.comments_disabled,
             "supporters": supporters
         }
     except HTTPException:
@@ -200,6 +229,15 @@ async def sign_proposal(
     if not category or category.status != CategoryStatus.PROPOSAL:
         raise HTTPException(status_code=404, detail="Proposal not found or already active.")
 
+    # 1b. Check for blocks
+    block_check = select(UserBlock.id).where(
+        ((UserBlock.blocker_id == current_user.id) & (UserBlock.blocked_id == category.creator_id)) |
+        ((UserBlock.blocker_id == category.creator_id) & (UserBlock.blocked_id == current_user.id))
+    )
+    block_res = await session.execute(block_check)
+    if block_res.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Interaction blocked.")
+
     # 2. Add signature
     new_sig = CategoryProposalSignature(user_id=current_user.id, category_id=category_id)
     session.add(new_sig)
@@ -224,3 +262,29 @@ async def sign_proposal(
     await session.refresh(category)
     
     return {"status": category.status, "signatures": category.proposal_signatures}
+
+@router.patch("/proposals/{category_id}/settings", status_code=status.HTTP_200_OK)
+async def toggle_comments(
+    category_id: uuid.UUID,
+    comments_disabled: bool,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Enable or disable comments for a proposal (owner only)."""
+    category = await session.get(Category, category_id)
+    if not category:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    
+    if int(str(category.creator_id)) != int(str(current_user.id)) if category.creator_id else False:
+        # Comparison logic for UUIDs can be tricky if they are strings vs objects, 
+        # but usually SQLModel/SQLAlchemy handles it.
+        # Let's use a safer comparison.
+        if str(category.creator_id) != str(current_user.id):
+             raise HTTPException(status_code=403, detail="Only the owner can modify these settings")
+
+    category.comments_disabled = comments_disabled
+    session.add(category)
+    await session.commit()
+    await session.refresh(category)
+    
+    return {"comments_disabled": category.comments_disabled}

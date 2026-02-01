@@ -8,14 +8,20 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import UserCard from '../../components/UserCard';
 import Avatar from '../../components/Avatar';
-import { ChevronLeft, Heart, ShieldCheck, Users, Info, CheckCircle2, Star } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronLeft, Heart, ShieldCheck, Users, Info, CheckCircle2, Star, MoreHorizontal, MessageSquare, Ban, Settings2 } from 'lucide-react';
 import Link from 'next/link';
+import BlockButton from '../../components/BlockButton';
+import CommentModal from '../../components/CommentModal';
 
 export default function ProposalDetailPage() {
     const params = useParams();
     const router = useRouter();
     const id = params.id;
     const { user } = useAuth();
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+    const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
 
     const { data: proposal, isLoading } = useSWR(`/proposals/${id}`, fetcher);
 
@@ -34,6 +40,26 @@ export default function ProposalDetailPage() {
             }
         } catch (err) {
             console.error(err);
+        }
+    };
+
+    const handleToggleComments = async () => {
+        if (!user || !proposal || isUpdatingSettings) return;
+        
+        setIsUpdatingSettings(true);
+        try {
+            const newValue = !proposal.comments_disabled;
+            const response = await fetch(`/api/proxy/proposals/${id}/settings?comments_disabled=${newValue}`, {
+                method: 'PATCH'
+            });
+            if (response.ok) {
+                mutate(`/proposals/${id}`);
+                setShowMoreMenu(false);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsUpdatingSettings(false);
         }
     };
 
@@ -100,15 +126,72 @@ export default function ProposalDetailPage() {
                                 {proposal.name}
                             </h1>
 
-                            <UserCard
-                                userId={proposal.creator_id || 'system'}
-                                name={proposal.creator_name || 'System'}
-                                userType={proposal.creator_type}
-                                isVerified={proposal.creator_verified}
-                                timestamp={`Proposed on ${new Date(proposal.created_at).toLocaleDateString()}`}
-                                showFollowButton
-                            />
-                        </section>
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex-grow">
+                                <UserCard
+                                    userId={proposal.creator_id || 'system'}
+                                    name={proposal.creator_name || 'System'}
+                                    userType={proposal.creator_type}
+                                    isVerified={proposal.creator_verified}
+                                    timestamp={`Proposed on ${new Date(proposal.created_at).toLocaleDateString()}`}
+                                    showFollowButton
+                                />
+                            </div>
+
+                            {/* More Menu for Proposal */}
+                            {user && proposal.creator_id && user.id !== proposal.creator_id && (
+                                <div className="relative pt-4 pr-4">
+                                    <button 
+                                        onClick={() => setShowMoreMenu(!showMoreMenu)}
+                                        className="p-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-full text-gray-400 hover:text-black dark:hover:text-white transition-all shadow-sm"
+                                    >
+                                        <MoreHorizontal size={20} />
+                                    </button>
+
+                                    {showMoreMenu && (
+                                        <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl p-2 z-50">
+                                            <div className="px-4 py-2 border-b border-gray-50 dark:border-gray-900 mb-1">
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Creator Actions</p>
+                                            </div>
+                                            <BlockButton 
+                                                targetUserId={proposal.creator_id} 
+                                                isBlocked={proposal.is_blocked} 
+                                                onUpdate={() => setShowMoreMenu(false)}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Owner Controls */}
+                            {user && proposal.creator_id && user.id === proposal.creator_id && (
+                                <div className="relative pt-4 pr-4">
+                                    <button 
+                                        onClick={() => setShowMoreMenu(!showMoreMenu)}
+                                        className="p-2 bg-accent/10 border border-accent/20 rounded-full text-accent hover:bg-accent/20 transition-all shadow-sm"
+                                    >
+                                        <Settings2 size={20} />
+                                    </button>
+
+                                    {showMoreMenu && (
+                                        <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl p-2 z-50">
+                                            <div className="px-4 py-2 border-b border-gray-50 dark:border-gray-900 mb-1">
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Proposal Settings</p>
+                                            </div>
+                                            <button 
+                                                onClick={handleToggleComments}
+                                                disabled={isUpdatingSettings}
+                                                className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-colors text-sm font-bold text-gray-600 dark:text-gray-300"
+                                            >
+                                                <span>{proposal.comments_disabled ? "Enable Comments" : "Disable Comments"}</span>
+                                                <MessageSquare size={16} className={proposal.comments_disabled ? "text-green-500" : "text-red-500"} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </section>
 
                         {/* Description */}
                         <section className="bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-3xl p-8">
@@ -186,7 +269,15 @@ export default function ProposalDetailPage() {
                                     )}
                                 </button>
 
-                                <p className="text-[10px] text-gray-400 text-center mt-4 px-2 leading-relaxed font-medium flex items-center justify-center">
+                                <button
+                                    onClick={() => setIsCommentModalOpen(true)}
+                                    className="w-full mt-3 py-3 rounded-2xl font-bold text-sm bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gray-800 text-gray-500 hover:text-black dark:hover:text-white transition-all flex items-center justify-center gap-2"
+                                >
+                                    <MessageSquare size={18} />
+                                    <span>Discuss Vision</span>
+                                </button>
+
+                                <p className="text-[10px] text-gray-400 text-center mt-4 px-2 leading-relaxed font-bold flex items-center justify-center">
                                     By signing, you append your immutable identifier to this proposal on the Votest<Star size={11} className="fill-accent text-accent mx-0.5" />r ledger.
                                 </p>
                             </div>
@@ -209,6 +300,13 @@ export default function ProposalDetailPage() {
             </main>
 
             <Footer />
+            <CommentModal 
+                isOpen={isCommentModalOpen} 
+                onClose={() => setIsCommentModalOpen(false)} 
+                proposalId={String(id)}
+                proposalName={proposal.name}
+                commentsDisabled={proposal.comments_disabled}
+            />
         </div>
     );
 }

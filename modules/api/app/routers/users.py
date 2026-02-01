@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy import func
 from app.core.database import get_session
 from app.core.auth import get_current_user, resolve_user, get_optional_current_user
-from app.models.generic import User, UserBase
+from app.models.generic import User, UserBase, UserBlock
 from typing import Optional
 import uuid
 
@@ -48,13 +48,28 @@ async def update_me(
     return current_user
 
 @router.get("/users/{user_id}/votes")
-async def get_user_votes(user_id: str, session: AsyncSession = Depends(get_session)):
+async def get_user_votes(
+    user_id: str, 
+    session: AsyncSession = Depends(get_session),
+    current_user: Optional[User] = Depends(get_optional_current_user)
+):
     """Return all ledger entries (votes) for a specific citizen (by UUID or Auth0 ID)."""
-    from app.models.generic import Vote, Category, Candidate
+    from app.models.generic import Vote, Category, Candidate, UserBlock
     
     user = await resolve_user(user_id, session)
     if not user:
         raise HTTPException(status_code=404, detail="Citizen not found")
+
+    # Check for blocks
+    if current_user and current_user.id != user.id:
+        # Check if target user blocks current user
+        block_query = select(UserBlock.id).where(
+            UserBlock.blocker_id == user.id,
+            UserBlock.blocked_id == current_user.id
+        )
+        block_res = await session.execute(block_query)
+        if block_res.scalar_one_or_none():
+            raise HTTPException(status_code=403, detail="Access denied.")
 
     query = (
         select(
@@ -96,13 +111,33 @@ async def get_user_profile(
 
     # Check if current user is following this profile
     is_following = False
-    if current_user and current_user.id != user.id:
-        follow_check = select(UserFollow.id).where(
-            UserFollow.follower_id == current_user.id,
-            UserFollow.followed_id == user.id
-        )
-        follow_res = await session.execute(follow_check)
-        is_following = follow_res.scalar_one_or_none() is not None
+    is_blocked = False
+    if current_user:
+        if current_user.id != user.id:
+            # 1. Check Follow
+            follow_query = select(UserFollow.id).where(
+                UserFollow.follower_id == current_user.id,
+                UserFollow.followed_id == user.id
+            )
+            follow_res = await session.execute(follow_query)
+            is_following = follow_res.scalar_one_or_none() is not None
+
+            # 2. Check Blocked by Me
+            block_query = select(UserBlock.id).where(
+                UserBlock.blocker_id == current_user.id,
+                UserBlock.blocked_id == user.id
+            )
+            block_res = await session.execute(block_query)
+            is_blocked = block_res.scalar_one_or_none() is not None
+
+            # 3. Check Blocked Me
+            blocked_me_query = select(UserBlock.id).where(
+                UserBlock.blocker_id == user.id,
+                UserBlock.blocked_id == current_user.id
+            )
+            blocked_me_res = await session.execute(blocked_me_query)
+            if blocked_me_res.scalar_one_or_none():
+                raise HTTPException(status_code=403, detail="You do not have permission to view this citizen.")
 
     return {
         "id": str(user.id),
@@ -113,5 +148,57 @@ async def get_user_profile(
         "following_count": following_count or 0,
         "total_votes": total_votes or 0,
         "is_following": is_following,
+        "is_blocked": is_blocked,
         "is_me": current_user.id == user.id if current_user else False
     }
+
+
+@router.get("/users/search")
+async def search_users(
+    q: str,
+    limit: int = 10,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Search for users by name or email to start a DM."""
+    if not q or len(q) < 2:
+        return []
+    
+    # Search by name or email (case-insensitive)
+    search_pattern = f"%{q}%"
+    query = select(User).where(
+        (User.name.ilike(search_pattern)) | (User.email.ilike(search_pattern))
+    ).where(
+        User.id != current_user.id  # Exclude self
+    ).limit(limit)
+    
+    results = (await session.execute(query)).scalars().all()
+    
+    # Filter out blocked users
+    if results:
+        user_ids = [u.id for u in results]
+        block_query = select(UserBlock.blocked_id).where(
+            UserBlock.blocker_id == current_user.id,
+            UserBlock.blocked_id.in_(user_ids)
+        )
+        blocked_ids = set((await session.execute(block_query)).scalars().all())
+        
+        # Also filter users who blocked me
+        blocked_me_query = select(UserBlock.blocker_id).where(
+            UserBlock.blocked_id == current_user.id,
+            UserBlock.blocker_id.in_(user_ids)
+        )
+        blocked_me_ids = set((await session.execute(blocked_me_query)).scalars().all())
+        
+        results = [u for u in results if u.id not in blocked_ids and u.id not in blocked_me_ids]
+    
+    return [
+        {
+            "id": str(u.id),
+            "name": u.name or u.email.split('@')[0],
+            "email": u.email,
+            "user_type": u.user_type,
+            "is_verified_org": u.is_verified_org
+        }
+        for u in results
+    ]

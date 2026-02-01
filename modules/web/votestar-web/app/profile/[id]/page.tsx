@@ -9,14 +9,21 @@ import Footer from '../../components/Footer';
 import Avatar from '../../components/Avatar';
 import VerifiedBadge from '../../components/VerifiedBadge';
 import FollowButton from '../../components/FollowButton';
+import BlockButton from '../../components/BlockButton';
 import { useState } from 'react';
-import { Vote, Users, Award, TrendingUp, ShieldCheck, Grid, List } from 'lucide-react';
+import { Vote, Users, Award, TrendingUp, Grid, List, MoreHorizontal, MessageSquare } from 'lucide-react';
+import ChatModal from '../../components/ChatModal';
 
 export default function SocialProfilePage() {
     const params = useParams();
     const id = params.id;
     const { user: me } = useAuth();
     const [activeTab, setActiveTab] = useState<'votes' | 'activity'>('votes');
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
+    
+    // Local Modal State
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
     const { data: profile, isLoading: profileLoading } = useSWR(`/users/${id}/profile`, fetcher);
     const { data: votes, isLoading: votesLoading } = useSWR(`/users/${id}/votes`, fetcher);
@@ -54,10 +61,10 @@ export default function SocialProfilePage() {
                 {/* Profile Header / Cover */}
                 <div className="h-48 md:h-64 bg-gradient-to-r from-accent/20 via-accent/5 to-transparent relative border-b border-gray-100 dark:border-gray-900">
                     <div className="absolute -bottom-16 left-6 md:left-12">
-                        <Avatar 
-                          name={profile.name} 
-                          size="xxl" 
-                          className="h-50 flex justify-center rounded-full"
+                        <Avatar
+                            name={profile.name}
+                            size="xxl"
+                            className="h-50 flex justify-center rounded-full"
                         />
                     </div>
                 </div>
@@ -69,12 +76,12 @@ export default function SocialProfilePage() {
                             <VerifiedBadge isVerified={profile.is_verified_org} type={profile.user_type} />
                         </div>
                         <p className="text-gray-600 dark:text-gray-400 font-medium mb-4">
-                            {profile.user_type === 'ORGANIZATION' 
+                            {profile.user_type === 'ORGANIZATION'
                                 ? `Official Verified Organization · Shapers of the Star Wall`
                                 : `Active Star Citizen · Contributing to Global Consensus`
                             }
                         </p>
-                        
+
                         <div className="flex flex-wrap gap-8 mt-4">
                             <div className="flex flex-col">
                                 <span className="text-xl font-bold text-black dark:text-white uppercase">{profile.follower_count?.toLocaleString()}</span>
@@ -93,34 +100,78 @@ export default function SocialProfilePage() {
 
                     <div className="flex gap-3 w-full md:w-auto mt-4 md:mt-2">
                         {!profile.is_me && (
-                            <FollowButton 
-                                targetUserId={profile.id} 
+                            <FollowButton
+                                targetUserId={profile.id}
                                 initialIsFollowing={profile.is_following}
                                 onUpdate={() => mutate(`/users/${id}/profile`)}
                             />
                         )}
-                        <button className="px-6 py-2.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-full text-xs font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-all">
-                            Message
-                        </button>
+                        {!profile.is_me && (
+                            <button 
+                                onClick={async () => {
+                                    try {
+                                        const res = await fetch('/api/proxy/conversations/dm', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ recipient_id: profile.id })
+                                        });
+                                        if (res.ok) {
+                                            const data = await res.json();
+                                            setActiveConversationId(data.id);
+                                            setIsChatOpen(true);
+                                        }
+                                    } catch (e) {
+                                        console.error("Failed to open chat", e);
+                                    }
+                                }}
+                                className="px-6 py-2.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-full text-xs font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-200 hover:text-accent transition-all flex items-center gap-2"
+                            >
+                                <MessageSquare size={16} />
+                                Message
+                            </button>
+                        )}
+
+                        {/* More Menu */}
+                        {!profile.is_me && (
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                                    className="p-2.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-all"
+                                >
+                                    <MoreHorizontal size={20} />
+                                </button>
+
+                                {showMoreMenu && (
+                                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl p-2 z-[110]">
+                                        <div className="px-4 py-2 border-b border-gray-50 dark:border-gray-900 mb-1">
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Citizen Actions</p>
+                                        </div>
+                                        <BlockButton
+                                            targetUserId={profile.id}
+                                            isBlocked={profile.is_blocked}
+                                            onUpdate={() => setShowMoreMenu(false)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Tabs */}
                 <div className="mt-12 border-b border-gray-100 dark:border-gray-900 flex justify-center gap-12">
-                    <button 
-                      onClick={() => setActiveTab('votes')}
-                      className={`pb-4 text-sm font-bold uppercase tracking-widest flex items-center gap-2 border-b-2 transition-all ${
-                        activeTab === 'votes' ? 'text-black dark:text-white border-black dark:border-white' : 'text-gray-400 border-transparent'
-                      }`}
+                    <button
+                        onClick={() => setActiveTab('votes')}
+                        className={`pb-4 text-sm font-bold uppercase tracking-widest flex items-center gap-2 border-b-2 transition-all ${activeTab === 'votes' ? 'text-black dark:text-white border-black dark:border-white' : 'text-gray-400 border-transparent'
+                            }`}
                     >
                         <Grid size={16} />
                         Ledger
                     </button>
-                    <button 
-                      onClick={() => setActiveTab('activity')}
-                      className={`pb-4 text-sm font-bold uppercase tracking-widest flex items-center gap-2 border-b-2 transition-all ${
-                        activeTab === 'activity' ? 'text-black dark:text-white border-black dark:border-white' : 'text-gray-400 border-transparent'
-                      }`}
+                    <button
+                        onClick={() => setActiveTab('activity')}
+                        className={`pb-4 text-sm font-bold uppercase tracking-widest flex items-center gap-2 border-b-2 transition-all ${activeTab === 'activity' ? 'text-black dark:text-white border-black dark:border-white' : 'text-gray-400 border-transparent'
+                            }`}
                     >
                         <List size={16} />
                         Activity
@@ -174,6 +225,14 @@ export default function SocialProfilePage() {
             </main>
 
             <Footer />
+
+            {isChatOpen && activeConversationId && (
+                <ChatModal 
+                    conversationId={activeConversationId}
+                    otherUserName={profile.name}
+                    onClose={() => setIsChatOpen(false)}
+                />
+            )}
         </div>
     );
 }

@@ -4,7 +4,7 @@ import os
 
 load_dotenv() # Load variables from .env
 
-from app.routers import votes, categories, proposals, users, relationships
+from app.routers import votes, categories, proposals, users, relationships, blocks, comments, conversations
 from app.core.database import init_db
 
 app = FastAPI(
@@ -37,3 +37,6 @@ app.include_router(categories.router, prefix="/api/v1", tags=["categories"])
 app.include_router(proposals.router, prefix="/api/v1", tags=["proposals"])
 app.include_router(users.router, prefix="/api/v1", tags=["users"])
 app.include_router(relationships.router, prefix="/api/v1", tags=["relationships"])
+app.include_router(blocks.router, prefix="/api/v1", tags=["blocks"])
+app.include_router(comments.router, prefix="/api/v1", tags=["comments"])
+app.include_router(conversations.router, prefix="/api/v1", tags=["conversations"])

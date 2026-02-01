@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { User, Shield, Clock, ExternalLink, Award, Settings, Users, Grid, List } from 'lucide-react';
+import { User, Shield, Clock, ExternalLink, Award, Settings, Users, Grid, List, X, ShieldOff } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useAuth } from '../components/AuthProvider';
@@ -10,9 +10,11 @@ import useSWR from 'swr';
 import { fetcher } from '../../lib/api';
 import VerifiedBadge from '../components/VerifiedBadge';
 import Avatar from '../components/Avatar';
+import BlockButton from '../components/BlockButton';
 
 export default function ProfilePage() {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [showBlockedList, setShowBlockedList] = useState(false);
     const { user, logout, isLoading: authLoading } = useAuth();
     const [activeTab, setActiveTab] = useState<'ledger' | 'activity'>('ledger');
 
@@ -25,6 +27,12 @@ export default function ProfilePage() {
     // Fetch followers list
     const { data: followers } = useSWR(
         user ? `/users/${user.id}/followers` : null,
+        fetcher
+    );
+
+    // Fetch blocked users
+    const { data: blockedUsers, mutate: mutateBlocked } = useSWR(
+        user ? `/users/me/blocks` : null,
         fetcher
     );
 
@@ -50,6 +58,53 @@ export default function ProfilePage() {
     return (
         <div className="min-h-screen bg-white dark:bg-black">
             <Navbar />
+
+            {/* Blocked List Modal */}
+            {showBlockedList && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowBlockedList(false)}></div>
+                    <div className="relative w-full max-w-lg bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="px-8 py-6 border-b border-gray-50 dark:border-gray-900 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-xl font-black text-black dark:text-white">Blocked Citizens</h2>
+                                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Manage Restricted Accounts</p>
+                            </div>
+                            <button 
+                                onClick={() => setShowBlockedList(false)}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-all"
+                            >
+                                <X size={20} className="text-gray-400" />
+                            </button>
+                        </div>
+                        
+                        <div className="p-4 max-h-[60vh] overflow-y-auto">
+                            {blockedUsers?.length > 0 ? (
+                                <div className="space-y-2">
+                                    {blockedUsers.map((b: any) => (
+                                        <div key={b.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-3xl border border-gray-100 dark:border-gray-800">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar name={b.name} size="md" />
+                                                <span className="font-bold text-black dark:text-white">{b.name}</span>
+                                            </div>
+                                            <BlockButton 
+                                                targetUserId={b.id} 
+                                                isBlocked={true} 
+                                                variant="button"
+                                                onUpdate={() => mutateBlocked()}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="py-12 text-center">
+                                    <ShieldOff size={40} className="mx-auto text-gray-200 dark:text-white/10 mb-4" />
+                                    <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">No Restricted Accounts</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <main className="max-w-4xl mx-auto pb-20 min-h-screen">
                 {/* Profile Header / Cover */}
@@ -113,6 +168,12 @@ export default function ProfilePage() {
                                         </button>
                                         <button className="w-full text-left px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-colors text-sm font-bold text-gray-600 dark:text-gray-300">
                                             Privacy Controls
+                                        </button>
+                                        <button 
+                                            onClick={() => { setShowBlockedList(true); setIsSettingsOpen(false); }}
+                                            className="w-full text-left px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-colors text-sm font-bold text-gray-600 dark:text-gray-300"
+                                        >
+                                            Blocked Citizens
                                         </button>
                                         <div className="h-px bg-gray-50 dark:bg-gray-900 my-1 mx-2"></div>
                                         <button

@@ -44,3 +44,10 @@ async def init_db():
     async with engine.begin() as conn:
         # verifying connection
         await conn.run_sync(SQLModel.metadata.create_all)
+        
+        # Migration: Add reply_to_id if it doesn't exist
+        try:
+            from sqlalchemy import text
+            await conn.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_id UUID REFERENCES messages(id);"))
+        except Exception as e:
+            print(f"Migration warning: {e}")

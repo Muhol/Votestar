@@ -9,16 +9,16 @@ export async function GET(req: any) { return handleProxy(req, 'GET'); }
 async function handleProxy(req: any, method: string) {
   try {
     const session = await auth0.getSession();
-    
+
     const url = new URL(req.url);
-    const path = url.pathname.replace('/api/proxy/', '');
+    const path = url.pathname.replace('/api/proxy/', '') + url.search;
 
     let body = undefined;
     if (method !== 'DELETE' && method !== 'GET') {
       try {
         const text = await req.text();
         if (text) {
-            body = JSON.parse(text);
+          body = JSON.parse(text);
         }
       } catch (e) {
         console.warn(`Proxy warning: Failed to parse request body for ${method} ${path}`);
@@ -29,7 +29,7 @@ async function handleProxy(req: any, method: string) {
     const headers: any = {
       'Content-Type': 'application/json'
     };
-    
+
     if (session) {
       const { token } = await auth0.getAccessToken();
       headers['Authorization'] = `Bearer ${token}`;
@@ -42,13 +42,13 @@ async function handleProxy(req: any, method: string) {
     });
 
     if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API Error [${response.status}]: ${errorText}`);
-        try {
-            return NextResponse.json(JSON.parse(errorText), { status: response.status });
-        } catch {
-            return NextResponse.json({ detail: errorText }, { status: response.status });
-        }
+      const errorText = await response.text();
+      console.error(`API Error [${response.status}]: ${errorText}`);
+      try {
+        return NextResponse.json(JSON.parse(errorText), { status: response.status });
+      } catch {
+        return NextResponse.json({ detail: errorText }, { status: response.status });
+      }
     }
 
     const data = await response.json();

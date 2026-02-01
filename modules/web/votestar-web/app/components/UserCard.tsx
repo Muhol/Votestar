@@ -4,6 +4,8 @@ import Avatar from './Avatar';
 import VerifiedBadge from './VerifiedBadge';
 import FollowButton from './FollowButton';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { MessageSquare } from 'lucide-react';
 
 interface UserCardProps {
     userId: string;
@@ -15,6 +17,7 @@ interface UserCardProps {
     showFollowButton?: boolean;
     timestamp?: string;
     compact?: boolean;
+    onMessage?: (userId: string, userName: string) => void;
 }
 
 export default function UserCard({
@@ -26,8 +29,10 @@ export default function UserCard({
     avatarSrc,
     showFollowButton = true,
     timestamp,
-    compact = false
+    compact = false,
+    onMessage
 }: UserCardProps) {
+    const router = useRouter();
     return (
         <div className={`flex items-start gap-3 ${compact ? '' : 'p-4'}`}>
             <Link href={`/profile/${userId}`}>
@@ -57,9 +62,26 @@ export default function UserCard({
                 )}
             </div>
 
-            {showFollowButton && (
-                <FollowButton targetUserId={userId} />
-            )}
+            <div className="flex flex-col gap-2 items-end">
+                {showFollowButton && (
+                    <FollowButton targetUserId={userId} />
+                )}
+                {!compact && (
+                    <button 
+                        onClick={() => {
+                            if (onMessage) {
+                                onMessage(userId, name);
+                            } else {
+                                router.push(`/messages?start_dm=${userId}`);
+                            }
+                        }}
+                        className="p-2 text-gray-400 hover:text-accent hover:bg-accent/10 rounded-full transition-colors"
+                        title="Send Message"
+                    >
+                        <MessageSquare size={20} />
+                    </button>
+                )}
+            </div>
         </div>
     );
 }
