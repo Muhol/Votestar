@@ -1,10 +1,9 @@
 "use client";
 
-import { ShieldCheck, Fingerprint, Lock, Mail, ArrowRight, Loader2, Star } from 'lucide-react';
+import { ShieldCheck, ArrowRight, Loader2, Star } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../components/AuthProvider';
-import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -19,7 +18,9 @@ export default function LoginPage() {
     // unless they were already signed in and just arrived here.
     useEffect(() => {
         if (user && step === 1) {
-            setStep(2);
+            setTimeout(() => {
+                setStep((prev) => (prev === 1 ? 2 : prev));
+            }, 0);
         }
     }, [user, step]);
 
@@ -101,8 +102,8 @@ export default function LoginPage() {
                                     onClick={simulateVerification}
                                     disabled={isVerifying || idNumber.length < 5}
                                     className={`w-full py-5 rounded-3xl font-bold text-sm flex items-center justify-center transition-all ${isVerifying
-                                            ? 'bg-gray-100 text-gray-400 cursor-wait'
-                                            : 'bg-accent text-black hover:shadow-xl hover:shadow-accent/20 active:scale-95 disabled:opacity-50'
+                                        ? 'bg-gray-100 text-gray-400 cursor-wait'
+                                        : 'bg-accent text-black hover:shadow-xl hover:shadow-accent/20 active:scale-95 disabled:opacity-50'
                                         }`}
                                 >
                                     {isVerifying ? (

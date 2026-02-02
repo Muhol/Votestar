@@ -16,14 +16,16 @@ const fetcher = async (url: string) => {
     return res.json();
 };
 
-export default function MessagesPage() {
+import { Suspense } from 'react';
+
+function MessagesContent() {
     const { user, login } = useAuth();
     const [activeId, setActiveId] = useState<string | null>(null);
     const [isModalMode, setIsModalMode] = useState(false);
 
     // Fetch conversations (refresh every 30s to reduce load, relying on optimistic updates for active chat)
     const { data: conversations, error, isLoading } = useSWR(
-        '/api/proxy/conversations', 
+        '/api/proxy/conversations',
         fetcher,
         { refreshInterval: 120000 }
     );
@@ -34,30 +36,20 @@ export default function MessagesPage() {
 
     useEffect(() => {
         if (startDmId && conversations) {
-            const initDm = async () => {
-                const existing = conversations.find((c: any) => c.other_user_id === startDmId);
-                if (existing) {
-                    setActiveId(existing.id);
-                } else {
-                    try {
-                        const res = await fetch('/api/proxy/conversations/dm', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ recipient_id: startDmId })
-                        });
-                        if (res.ok) {
-                            const data = await res.json();
-                            await refreshConversations('/api/proxy/conversations');
-                            setActiveId(data.id);
-                        }
-                    } catch (e) {
-                        console.error("Failed to start DM", e);
-                    }
+            // Check if we already have it
+            const existing = (conversations as Array<{ other_user_id: string, id: string }>).find((c) => c.other_user_id === startDmId);
+            if (existing) {
+                if (activeId !== existing.id) {
+                    setTimeout(() => setActiveId(existing.id), 0);
                 }
-            };
-            initDm();
+            } else {
+                const newId = `new:${startDmId}`;
+                if (activeId !== newId) {
+                    setTimeout(() => setActiveId(newId), 0);
+                }
+            }
         }
-    }, [startDmId, conversations, refreshConversations]);
+    }, [startDmId, conversations, activeId]);
 
     // Debug logging (Moved up to avoid conditional hook call error)
     useEffect(() => {
@@ -74,7 +66,7 @@ export default function MessagesPage() {
         );
     }
 
-    const activeConversation = Array.isArray(conversations) ? conversations.find((c: any) => c.id === activeId) : null;
+    const activeConversation = Array.isArray(conversations) ? (conversations as any[]).find((c) => c.id === activeId) : null;
 
     return (
         <div className="flex h-[100vh] overflow-hidden bg-white dark:bg-black">
@@ -89,10 +81,8 @@ export default function MessagesPage() {
                     error={error}
                     onSelect={(id) => {
                         setActiveId(id);
-                        // On mobile, this simply sets activeId, which triggers the modal below
-                        // On desktop, it updates the right pane
                     }}
-                    onNewMessage={() => alert("Search for a user to message (Feature coming soon!)")}
+                    onDelete={() => refreshConversations('/api/proxy/conversations')}
                 />
             </div>
 
@@ -110,9 +100,15 @@ export default function MessagesPage() {
                             </button>
                         </div>
                         <ChatInterface
-                            conversationId={activeId}
+                            conversationId={activeId && !activeId.startsWith('new:') ? activeId : null}
+                            recipientId={activeId?.startsWith('new:') ? activeId.split(':')[1] : undefined}
                             otherUserName={activeConversation?.name}
                             onClose={() => setActiveId(null)}
+                            onConversationCreated={(id) => {
+                                setActiveId(id);
+                                refreshConversations('/api/proxy/conversations');
+                            }}
+                            onMessageSent={() => refreshConversations('/api/proxy/conversations')}
                         />
                     </>
                 ) : (
@@ -166,7 +162,8 @@ export default function MessagesPage() {
                         </div>
 
                         <ChatInterface
-                            conversationId={activeId}
+                            conversationId={activeId && !activeId.startsWith('new:') ? activeId : null}
+                            recipientId={activeId?.startsWith('new:') ? activeId.split(':')[1] : undefined}
                             otherUserName={activeConversation?.name}
                             onClose={() => {
                                 if (window.innerWidth < 768) {
@@ -175,10 +172,27 @@ export default function MessagesPage() {
                                     setIsModalMode(false);
                                 }
                             }}
+                            onConversationCreated={(id) => {
+                                setActiveId(id);
+                                refreshConversations('/api/proxy/conversations');
+                            }}
+                            onMessageSent={() => refreshConversations('/api/proxy/conversations')}
                         />
                     </div>
                 </div>
             )}
         </div>
+    );
+}
+
+export default function MessagesPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+            </div>
+        }>
+            <MessagesContent />
+        </Suspense>
     );
 }

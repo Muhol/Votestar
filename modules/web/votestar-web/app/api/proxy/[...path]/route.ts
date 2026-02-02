@@ -1,12 +1,12 @@
 import { auth0 } from '@/lib/auth0';
 import { NextResponse } from 'next/server';
 
-export async function POST(req: any) { return handleProxy(req, 'POST'); }
-export async function PATCH(req: any) { return handleProxy(req, 'PATCH'); }
-export async function DELETE(req: any) { return handleProxy(req, 'DELETE'); }
-export async function GET(req: any) { return handleProxy(req, 'GET'); }
+export async function POST(req: Request) { return handleProxy(req, 'POST'); }
+export async function PATCH(req: Request) { return handleProxy(req, 'PATCH'); }
+export async function DELETE(req: Request) { return handleProxy(req, 'DELETE'); }
+export async function GET(req: Request) { return handleProxy(req, 'GET'); }
 
-async function handleProxy(req: any, method: string) {
+async function handleProxy(req: Request, method: string) {
   try {
     const session = await auth0.getSession();
 
@@ -20,13 +20,13 @@ async function handleProxy(req: any, method: string) {
         if (text) {
           body = JSON.parse(text);
         }
-      } catch (e) {
+      } catch {
         console.warn(`Proxy warning: Failed to parse request body for ${method} ${path}`);
       }
     }
 
     // Build headers - include auth token if available
-    const headers: any = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
 
@@ -53,8 +53,9 @@ async function handleProxy(req: any, method: string) {
 
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Proxy ${method} CRITICAL Error:`, error);
-    return NextResponse.json({ detail: error.message || "Internal Proxy Error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal Proxy Error";
+    return NextResponse.json({ detail: message }, { status: 500 });
   }
 }

@@ -73,12 +73,17 @@ export default function Navbar() {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`text-sm font-semibold transition-colors ${pathname === link.href
+                  className={`relative text-sm font-semibold transition-colors ${pathname === link.href
                     ? 'text-black dark:text-white'
                     : 'text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white'
                     }`}
                 >
                   {link.name}
+                  {link.name === 'Messages' && unreadConversations > 0 && (
+                    <span className="absolute -top-1 -right-2 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                      {unreadConversations > 9 ? '9+' : unreadConversations}
+                    </span>
+                  )}
                 </Link>
               ))}
             </div>
@@ -93,17 +98,17 @@ export default function Navbar() {
                   >
                     <Search size={20} />
                   </button>
-                  <Link href="/messages" className="relative md:block p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors">
+                  <Link href="/messages" className="relative md:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors">
                     <MessageSquare size={20} />
                     {unreadConversations > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 animate-pulse">
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 ">
                         {unreadConversations > 9 ? '9+' : unreadConversations}
                       </span>
                     )}
                   </Link>
                   <button className=" md:block p-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors relative">
                     <Bell size={20} />
-                    <span className="absolute top-1 right-1 h-2 w-2 bg-accent rounded-full"></span>
+                    <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
                   </button>
                   <div className="relative group hidden md:block">
                     <Link href="/profile" className="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-white/5 rounded-full transition-all">

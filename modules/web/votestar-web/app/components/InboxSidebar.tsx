@@ -1,26 +1,40 @@
 "use client";
 
-import { Search, Plus, ChevronLeft, X, Check, CheckCheck, Clock, MessageSquare } from 'lucide-react';
+import { Search, Plus, ChevronLeft, X, Check, CheckCheck, Clock, MessageSquare, MoreVertical, Trash2 } from 'lucide-react';
 import Avatar from './Avatar';
 import Skeleton from './Skeleton';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
-interface InboxSidebarProps {
-    conversations: any[]; // Using any for speed, ideally typed
-    activeId: string | null;
-    onSelect: (id: string) => void;
-    onNewMessage: () => void;
-    isLoading?: boolean;
-    error?: any;
+interface Conversation {
+    id: string;
+    name?: string;
+    other_user_id: string;
+    unread_count: number;
+    updated_at: string;
+    last_message_is_me?: boolean;
+    last_message_status?: string;
+    last_message_preview?: string;
 }
 
-export default function InboxSidebar({ conversations, activeId, onSelect, onNewMessage, isLoading, error }: InboxSidebarProps) {
+interface InboxSidebarProps {
+    conversations: Conversation[] | null;
+    activeId: string | null;
+    onSelect: (id: string) => void;
+    onDelete?: (id: string) => void;
+    isLoading?: boolean;
+    error?: unknown;
+}
+
+export default function InboxSidebar({ conversations, activeId, onSelect, onDelete, isLoading, error }: InboxSidebarProps) {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    const [startingDMId, setStartingDMId] = useState<string | null>(null);
+    const [actionMenuId, setActionMenuId] = useState<string | null>(null);
+    const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
 
     // Debounce search query
     useEffect(() => {
@@ -41,19 +55,64 @@ export default function InboxSidebar({ conversations, activeId, onSelect, onNewM
     );
 
     const handleStartDM = async (userId: string) => {
+        if (startingDMId) return;
+        setStartingDMId(userId);
         try {
-            const res = await fetch('/api/proxy/conversations/dm', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ recipient_id: userId })
-            });
-            if (!res.ok) throw new Error('Failed to start DM');
-            const data = await res.json();
-            setSearchQuery(''); // Clear search
+            // Check if conversation already exists in our list
+            const existing = conversations?.find((c) => c.other_user_id === userId);
+            if (existing) {
+                onSelect(existing.id);
+            } else {
+                // Lazy: Pass a temporary ID that the parent can catch
+                onSelect(`new:${userId}`);
+            }
+            setSearchQuery('');
             setIsSearching(false);
-            onSelect(data.id); // Open the conversation (using data.id which backend returns)
         } catch (error) {
             console.error('Error starting DM:', error);
+        } finally {
+            setStartingDMId(null);
+        }
+    };
+
+    const handleDelete = async (e: React.MouseEvent, convId: string) => {
+        e.stopPropagation();
+        if (isDeletingId) return;
+        if (!window.confirm("Delete this conversation? All messages will be lost.")) return;
+
+        setIsDeletingId(convId);
+        try {
+            const res = await fetch(`/api/proxy/conversations/${convId}`, { method: 'DELETE' });
+            if (res.ok) {
+                // Delete from Firestore too (cleanup)
+                try {
+                    const { doc, deleteDoc, collection, getDocs, writeBatch, query } = await import('firebase/firestore');
+                    const { db } = await import('@/lib/firebase');
+                    
+                    // Cleanup messages in Firestore
+                    const messagesRef = collection(db, 'conversations', convId, 'messages');
+                    const snapshot = await getDocs(query(messagesRef));
+                    const batch = writeBatch(db);
+                    snapshot.forEach(child => batch.delete(child.ref));
+                    await batch.commit();
+
+                    // Delete conversation doc
+                    await deleteDoc(doc(db, 'conversations', convId));
+                } catch (fiErr) {
+                    console.warn('Firestore cleanup failed during delete:', fiErr);
+                }
+
+                onDelete?.(convId);
+                if (activeId === convId) onSelect('');
+            } else {
+                alert("Failed to delete conversation");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred while deleting.");
+        } finally {
+            setIsDeletingId(null);
+            setActionMenuId(null);
         }
     };
 
@@ -99,19 +158,26 @@ export default function InboxSidebar({ conversations, activeId, onSelect, onNewM
                             {searchResults?.length === 0 && (
                                 <p className="text-sm text-gray-400 text-center py-4">No users found</p>
                             )}
-                            {searchResults?.map((user: any) => (
-                                <button
-                                    key={user.id}
-                                    onClick={() => handleStartDM(user.id)}
-                                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
-                                >
-                                    <Avatar name={user.name} size="sm" />
-                                    <div className="flex-grow text-left">
-                                        <h4 className="text-sm font-bold text-black dark:text-white">{user.name}</h4>
-                                        <p className="text-xs text-gray-400">{user.email}</p>
-                                    </div>
-                                    <MessageSquare size={16} className="text-gray-400" />
-                                </button>
+                            {searchResults?.map((user: { id: string, name: string, email: string }) => (
+                                    <button
+                                        key={user.id}
+                                        onClick={() => handleStartDM(user.id)}
+                                        disabled={startingDMId === user.id}
+                                        className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${
+                                            startingDMId === user.id ? 'bg-accent/5 animate-pulse' : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                                        }`}
+                                    >
+                                        <Avatar name={user.name} size="sm" />
+                                        <div className="flex-grow text-left">
+                                            <h4 className="text-sm font-bold text-black dark:text-white">{user.name}</h4>
+                                            <p className="text-xs text-gray-400">{user.email}</p>
+                                        </div>
+                                        {startingDMId === user.id ? (
+                                            <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                            <MessageSquare size={16} className="text-gray-400" />
+                                        )}
+                                    </button>
                             ))}
                         </div> 
                     )}
@@ -146,10 +212,10 @@ export default function InboxSidebar({ conversations, activeId, onSelect, onNewM
                     ))
                 ) : (
                     (conversations || []).map((conv) => (
-                        <button
+                        <div
                             key={conv.id}
                             onClick={() => onSelect(conv.id)}
-                            className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${activeId === conv.id
+                            className={`w-full group flex items-center gap-3 p-3 rounded-2xl transition-all cursor-pointer relative ${activeId === conv.id
                                 ? 'bg-accent/10'
                                 : 'hover:bg-gray-50 dark:hover:bg-white/5'
                                 }`}
@@ -162,7 +228,7 @@ export default function InboxSidebar({ conversations, activeId, onSelect, onNewM
                                     </span>
                                 )}
                             </div>
-                            <div className="flex-grow text-left overflow-hidden min-w-0">
+                            <div className="flex-grow text-left overflow-hidden min-w-0 pr-6">
                                 <div className="flex justify-between items-baseline">
                                     <h4 className={`text-sm font-bold truncate ${conv.unread_count > 0 ? 'text-black dark:text-white' : activeId === conv.id ? 'text-accent' : 'text-black dark:text-white'}`}>
                                         {conv.name || "Conversation"}
@@ -185,7 +251,37 @@ export default function InboxSidebar({ conversations, activeId, onSelect, onNewM
                                     </p>
                                 </div>
                             </div>
-                        </button>
+                            
+                            {/* More Actions Icon */}
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActionMenuId(actionMenuId === conv.id ? null : conv.id);
+                                    }}
+                                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full text-gray-400"
+                                >
+                                    <MoreVertical size={16} />
+                                </button>
+                                
+                                {actionMenuId === conv.id && (
+                                    <div className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-xl shadow-xl p-1 z-[20] animate-in fade-in zoom-in-95 duration-100">
+                                        <button
+                                            onClick={(e) => handleDelete(e, conv.id)}
+                                            disabled={isDeletingId === conv.id}
+                                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                        >
+                                            {isDeletingId === conv.id ? (
+                                                <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                                <Trash2 size={14} />
+                                            )}
+                                            {isDeletingId === conv.id ? 'Deleting...' : 'Delete Chat'}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     ))
                 )}
                 {!isLoading && conversations?.length === 0 && (

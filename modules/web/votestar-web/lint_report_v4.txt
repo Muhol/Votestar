@@ -1,0 +1,86 @@
+
+> votestar-web@0.1.0 lint
+> eslint
+
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/admin/layout.tsx
+  5:16  warning  'X' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/admin/page.tsx
+  13:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  64:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/admin/users/page.tsx
+  4:28  warning  'ShieldCheck' is defined but never used  @typescript-eslint/no-unused-vars
+  5:8   warning  'useSWR' is defined but never used       @typescript-eslint/no-unused-vars
+  6:10  warning  'fetcher' is defined but never used      @typescript-eslint/no-unused-vars
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/admin/votes/page.tsx
+  6:30  warning  'ShieldCheck' is defined but never used     @typescript-eslint/no-unused-vars
+  6:57  warning  'Search' is defined but never used          @typescript-eslint/no-unused-vars
+  9:26  warning  'error' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/categories/[id]/page.tsx
+  95:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/categories/page.tsx
+  53:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/components/Avatar.tsx
+   3:10  warning  'User' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  55:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/components/CategoryCard.tsx
+  23:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/components/CommentModal.tsx
+  259:10  warning  'str' is defined but never used           @typescript-eslint/no-unused-vars
+  259:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/components/FeedItem.tsx
+   6:8  warning  'Link' is defined but never used     @typescript-eslint/no-unused-vars
+  34:5  warning  'actions' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/components/Navbar.tsx
+  253:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/components/Table.tsx
+   7:11  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   8:23  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  24:41  warning  'i' is defined but never used             @typescript-eslint/no-unused-vars
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/components/VotingModal.tsx
+   4:23  warning  'Loader2' is defined but never used         @typescript-eslint/no-unused-vars
+   4:32  warning  'Fingerprint' is defined but never used     @typescript-eslint/no-unused-vars
+  19:11  warning  'token' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  55:19  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/ledger/page.tsx
+  93:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/messages/page.tsx
+  69:81  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/page.tsx
+   87:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  143:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/profile/[id]/page.tsx
+  175:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  176:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/profile/page.tsx
+    5:10  warning  'User' is defined but never used          @typescript-eslint/no-unused-vars
+    5:45  warning  'Award' is defined but never used         @typescript-eslint/no-unused-vars
+    5:62  warning  'Users' is defined but never used         @typescript-eslint/no-unused-vars
+   83:59  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  218:72  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/proposals/[id]/page.tsx
+  228:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/mohol/MOHOL/PROJECTS/OFFICIAL/VoteStar/modules/web/votestar-web/app/proposals/page.tsx
+  68:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 39 problems (19 errors, 20 warnings)
+

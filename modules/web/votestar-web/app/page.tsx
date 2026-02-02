@@ -6,15 +6,24 @@ import Footer from './components/Footer';
 import useSWR, { mutate } from 'swr';
 import { fetcher } from '../lib/api';
 import FeedItem from './components/FeedItem';
-import { Sparkles, TrendingUp, PlusCircle, Star } from 'lucide-react';
+import { Sparkles, TrendingUp, Star } from 'lucide-react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function Home() {
   const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
 
   // Fetch data for the feed
   const { data: proposals, isLoading: proposalsLoading } = useSWR('/proposals', fetcher);
-  const { data: trending, isLoading: trendingLoading } = useSWR('/categories', fetcher); // Placeholder for trending
+  const { data: trending } = useSWR('/categories', fetcher); // Placeholder for trending
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/welcome');
+    }
+  }, [user, authLoading, router]);
 
   const handleSign = async (id: string) => {
     try {
@@ -29,7 +38,7 @@ export default function Home() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
         <div className="flex flex-col items-center gap-4">
@@ -38,20 +47,6 @@ export default function Home() {
         </div>
       </div>
     );
-  }
-
-  // If not logged in, we show a "Lite" feed and a CTA to visit /welcome
-  // or we could redirect. The user said: "it should be displayed when the user is not logged in but also should not be restricted for logged in users"
-  // Wait, the user said the LANDING PAGE should be displayed when not logged in.
-  // So if not logged in, we show the landing page content (which is now in /welcome).
-
-  if (!user) {
-    // Import WelcomePage content or just redirect for simplicity?
-    // Let's redirect to /welcome if not logged in at /
-    if (typeof window !== 'undefined') {
-      window.location.href = '/welcome';
-    }
-    return null;
   }
 
   return (
@@ -89,7 +84,7 @@ export default function Home() {
             </div>
           ) : proposals && proposals.length > 0 ? (
             <div className="space-y-4">
-              {proposals.map((item: any) => (
+              {(proposals as any[]).map((item) => (
                 <FeedItem
                   key={item.id}
                   userId={item.creator_id || 'system'}

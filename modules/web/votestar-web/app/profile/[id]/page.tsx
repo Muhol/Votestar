@@ -11,7 +11,7 @@ import VerifiedBadge from '../../components/VerifiedBadge';
 import FollowButton from '../../components/FollowButton';
 import BlockButton from '../../components/BlockButton';
 import { useState } from 'react';
-import { Vote, Users, Award, TrendingUp, Grid, List, MoreHorizontal, MessageSquare } from 'lucide-react';
+import { Vote, Award, TrendingUp, Grid, List, MoreHorizontal, MessageSquare } from 'lucide-react';
 import ChatModal from '../../components/ChatModal';
 
 export default function SocialProfilePage() {
@@ -20,7 +20,7 @@ export default function SocialProfilePage() {
     const { user: me } = useAuth();
     const [activeTab, setActiveTab] = useState<'votes' | 'activity'>('votes');
     const [showMoreMenu, setShowMoreMenu] = useState(false);
-    
+
     // Local Modal State
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -52,6 +52,11 @@ export default function SocialProfilePage() {
             </div>
         );
     }
+
+    const handleOpenChat = () => {
+        if (!me) return;
+        setIsChatOpen(true);
+    };
 
     return (
         <div className="min-h-screen bg-white dark:bg-black">
@@ -107,24 +112,9 @@ export default function SocialProfilePage() {
                             />
                         )}
                         {!profile.is_me && (
-                            <button 
-                                onClick={async () => {
-                                    try {
-                                        const res = await fetch('/api/proxy/conversations/dm', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ recipient_id: profile.id })
-                                        });
-                                        if (res.ok) {
-                                            const data = await res.json();
-                                            setActiveConversationId(data.id);
-                                            setIsChatOpen(true);
-                                        }
-                                    } catch (e) {
-                                        console.error("Failed to open chat", e);
-                                    }
-                                }}
-                                className="px-6 py-2.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-full text-xs font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-200 hover:text-accent transition-all flex items-center gap-2"
+                            <button
+                                onClick={handleOpenChat}
+                                className="px-6 py-2.5 border rounded-full text-xs font-bold transition-all flex items-center gap-2 bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 hover:text-accent"
                             >
                                 <MessageSquare size={16} />
                                 Message
@@ -182,8 +172,8 @@ export default function SocialProfilePage() {
                 <div className="mt-8 px-4 max-w-3xl mx-auto">
                     {activeTab === 'votes' ? (
                         <div className="space-y-4">
-                            {votes?.length > 0 ? (
-                                votes.map((vote: any) => (
+                            {(votes as any[] || []).length > 0 ? (
+                                (votes as any[]).map((vote) => (
                                     <div key={vote.id} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:border-accent/40">
                                         <div>
                                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
@@ -226,11 +216,14 @@ export default function SocialProfilePage() {
 
             <Footer />
 
-            {isChatOpen && activeConversationId && (
-                <ChatModal 
+            {isChatOpen && (
+                <ChatModal
+                    isOpen={isChatOpen}
                     conversationId={activeConversationId}
+                    recipientId={profile.id}
                     otherUserName={profile.name}
                     onClose={() => setIsChatOpen(false)}
+                    onConversationCreated={(id) => setActiveConversationId(id)}
                 />
             )}
         </div>

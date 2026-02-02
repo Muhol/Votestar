@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Smile, Paperclip, Check, CheckCheck, Heart, Reply as ReplyIcon, X, Clock, ChevronLeft, MoreVertical, Trash2, Eraser } from 'lucide-react';
+import { Send, Smile, Check, CheckCheck, Heart, Reply as ReplyIcon, X, Clock, ChevronLeft, MoreVertical, Trash2, Eraser } from 'lucide-react';
 import useSWR from 'swr';
 import { useAuth } from './AuthProvider';
 import Avatar from './Avatar';
@@ -26,9 +26,12 @@ interface Message {
 }
 
 interface ChatInterfaceProps {
-    conversationId: string;
+    conversationId: string | null;
+    recipientId?: string; // For NEW conversations
     otherUserName?: string;
     onClose?: () => void; // For modal model
+    onConversationCreated?: (id: string) => void;
+    onMessageSent?: () => void; // To refresh previews
 }
 
 const fetcher = async (url: string) => {
@@ -43,20 +46,35 @@ const fetcher = async (url: string) => {
     return data;
 };
 
-export default function ChatInterface({ conversationId, otherUserName, onClose }: ChatInterfaceProps) {
+export default function ChatInterface({ 
+    conversationId, 
+    recipientId, 
+    otherUserName, 
+    onClose, 
+    onConversationCreated,
+    onMessageSent 
+}: ChatInterfaceProps) {
     const { user } = useAuth();
     const [content, setContent] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [showEmoji, setShowEmoji] = useState(false);
     const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [activeCid, setActiveCid] = useState<string | null>(conversationId);
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+    const [isCheckingExisting, setIsCheckingExisting] = useState(false);
+
+    // Sync activeCid when conversationId prop changes
+    useEffect(() => {
+        setActiveCid(conversationId);
+    }, [conversationId]);
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const wsRef = useRef<WebSocket | null>(null);
 
     // Fetch messages with debug logs
     const { data: serverMessages, mutate, isLoading: swrLoading, error } = useSWR<Message[]>(
-        conversationId ? `/api/proxy/conversations/${conversationId}/messages` : null,
+        activeCid ? `/api/proxy/conversations/${activeCid}/messages` : null,
         fetcher,
         {
             revalidateOnFocus: true,
@@ -66,16 +84,16 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
     );
 
     // Debug Render
-    console.log('[ChatInterface] Render:', { 
-        conversationId, 
-        swrLoading, 
-        hasServerMessages: !!serverMessages, 
-        messagesLen: serverMessages?.length, 
-        error: !!error 
+    console.log('[ChatInterface] Render:', {
+        conversationId,
+        swrLoading,
+        hasServerMessages: !!serverMessages,
+        messagesLen: serverMessages?.length,
+        error: !!error
     });
 
-    if (!conversationId) {
-        console.warn('[ChatInterface] No conversationId provided!');
+    if (!activeCid && !recipientId) {
+        console.warn('[ChatInterface] No conversationId or recipientId provided!');
     }
 
     // Sync server messages to local state
@@ -89,13 +107,37 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
     }, [serverMessages]);
 
     // Simplified loading state
-    const isLoading = swrLoading && !messages;
+    const isLoading = (swrLoading && !messages) || isCheckingExisting;
     // Auto-scroll to bottom on new messages
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages]);
+
+    useEffect(() => {
+        if (!activeCid && recipientId) {
+            const findDM = async () => {
+                setIsCheckingExisting(true);
+                try {
+                    const res = await fetch('/api/proxy/conversations');
+                    if (res.ok) {
+                        const conversations = await res.json() as Array<{ id: string, other_user_id: string }>;
+                        const existing = conversations.find((c) => c.other_user_id === recipientId);
+                        if (existing) {
+                            console.log('[ChatInterface] Found existing DM:', existing.id);
+                            setActiveCid(existing.id);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to check for existing DM", e);
+                } finally {
+                    setIsCheckingExisting(false);
+                }
+            };
+            findDM();
+        }
+    }, [activeCid, recipientId]);
 
     // Auto-focus input on mount and when replying
     useEffect(() => {
@@ -107,12 +149,13 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
     // Mark messages as read when viewing conversation
     useEffect(() => {
         if (!conversationId || !user) return;
+        const cid = conversationId;
 
         // Small delay to ensure we're actually viewing the chat
         const timer = setTimeout(async () => {
             try {
                 // 1. Update PostgreSQL (Source of Truth)
-                await fetch(`/api/proxy/conversations/${conversationId}/read`, {
+                await fetch(`/api/proxy/conversations/${cid}/read`, {
                     method: 'POST'
                 });
                 console.log('[Read] Marked messages as read in DB');
@@ -120,17 +163,14 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
                 // 2. Update Firestore (Real-time Sync)
                 import('firebase/firestore').then(async ({ collection, query, where, getDocs, writeBatch }) => {
                     const { db } = await import('@/lib/firebase');
-                    const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+                    const messagesRef = collection(db, 'conversations', cid as string, 'messages');
 
-                    // Query ALL unread messages for this conversation
-                    // Simplified query to avoid complex index requirements for now
                     const q = query(
                         messagesRef,
                         where('status', '!=', 'read')
                     );
 
                     const snapshot = await getDocs(q);
-                    console.log(`[Firestore] Found ${snapshot.size} potentially unread messages`);
                     if (snapshot.empty) return;
 
                     const batch = writeBatch(db);
@@ -138,7 +178,6 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
 
                     snapshot.forEach((doc) => {
                         const data = doc.data();
-                        // Filter for messages NOT from me in the client
                         if (data.sender_id !== user.id && data.status !== 'read') {
                             batch.update(doc.ref, { status: 'read' });
                             count++;
@@ -147,7 +186,6 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
 
                     if (count > 0) {
                         await batch.commit();
-                        console.log(`[Firestore] Marked ${count} messages as read`);
                     }
                 });
 
@@ -161,12 +199,10 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
 
     // Firestore real-time listener
     useEffect(() => {
-        if (!conversationId || !user) return;
-        
-        // Wait for initial load to prevent race conditions where Firestore overwrites pending state
-        if (!serverMessages) return;
+        if (!conversationId || !user || !serverMessages) return;
+        const cid = conversationId;
 
-        console.log('[Firestore] Setting up real-time listener for conversation:', conversationId);
+        console.log('[Firestore] Setting up real-time listener for conversation:', cid);
 
         let unsubscribe: (() => void) | undefined;
 
@@ -174,38 +210,25 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
             try {
                 const { collection, query, orderBy, onSnapshot } = await import('firebase/firestore');
                 const { db } = await import('@/lib/firebase');
-                
-                const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+
+                const messagesRef = collection(db, 'conversations', cid as string, 'messages');
                 const q = query(messagesRef, orderBy('created_at', 'asc'));
 
                 unsubscribe = onSnapshot(q, (snapshot) => {
-                    console.log('[Firestore] Received update, changes:', snapshot.docChanges().length);
-
                     snapshot.docChanges().forEach((change) => {
                         if (change.type === 'added') {
                             const firestoreMsg = change.doc.data();
 
-                            // AUTO-READ: If specific message is from other user and we are viewing it, mark as read immediately
                             if (firestoreMsg.sender_id !== user.id && firestoreMsg.status !== 'read') {
-                                console.log('[Firestore] Auto-marking new message as read:', firestoreMsg.id);
-                                // Update Firestore immediately
-                                import('firebase/firestore').then(({ updateDoc, doc }) => {
+                                import('firebase/firestore').then(({ updateDoc }) => {
                                     updateDoc(change.doc.ref, { status: 'read' });
                                 });
-                                // Also trigger API for Postgres sync (optimistic, don't await)
-                                fetch(`/api/proxy/conversations/${conversationId}/read`, { method: 'POST' });
+                                fetch(`/api/proxy/conversations/${cid}/read`, { method: 'POST' });
                             }
 
-                            // Add to local state if not already present
                             mutate((current) => {
-                                if (!current) return current;
+                                if (!current || current.some(m => m.id === firestoreMsg.id)) return current;
 
-                                // Check if message already exists
-                                if (current.some(m => m.id === firestoreMsg.id)) {
-                                    return current;
-                                }
-
-                                // Add new message
                                 const enrichedMessage: Message = {
                                     id: firestoreMsg.id,
                                     content: firestoreMsg.content,
@@ -223,8 +246,6 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
                             }, false);
                         } else if (change.type === 'modified') {
                             const firestoreMsg = change.doc.data();
-                            console.log('[Firestore] Message updated:', firestoreMsg);
-
                             mutate((current) => {
                                 if (!current) return current;
                                 return current.map(m =>
@@ -235,8 +256,6 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
                             }, false);
                         }
                     });
-                }, (error) => {
-                    console.error('[Firestore] Error:', error);
                 });
             } catch (err) {
                 console.error('Failed to setup listener', err);
@@ -244,26 +263,42 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
         };
 
         setupListener();
-
-        // Cleanup listener on unmount
-        return () => {
-            if (unsubscribe) {
-                console.log('[Firestore] Cleaning up listener');
-                unsubscribe();
-            }
-        };
-    }, [conversationId, user, mutate, !!serverMessages]);
+        return () => unsubscribe?.();
+    }, [conversationId, user, mutate, serverMessages]);
 
     const handleSend = async (e?: React.FormEvent) => {
         e?.preventDefault();
         if (!content.trim() || isSending || !user) return;
+        if (!activeCid && !recipientId) return;
 
         setIsSending(true);
+        let cid = activeCid;
         const replyId = replyingTo?.id;
         const messageContent = content.trim();
         const tempId = `temp-${Date.now()}`;
 
-        // Optimistic update - add message immediately with 'pending' status
+        // Lazy DM Initialization if needed
+        if (!cid && recipientId) {
+            try {
+                console.log('[LazyInit] Creating conversation with:', recipientId);
+                const res = await fetch('/api/proxy/conversations/dm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ recipient_id: recipientId })
+                });
+                if (!res.ok) throw new Error('Failed to create conversation');
+                const data = await res.json();
+                cid = data.id;
+                setActiveCid(cid);
+                onConversationCreated?.(cid as string);
+            } catch (err) {
+                console.error('[LazyInit] Error:', err);
+                setIsSending(false);
+                alert("Failed to start conversation. Please try again.");
+                return;
+            }
+        }
+
         const pendingMessage: Message = {
             id: tempId,
             content: messageContent,
@@ -287,8 +322,7 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
         setShowEmoji(false);
 
         try {
-            // 1. Save to PostgreSQL (source of truth)
-            const res = await fetch(`/api/proxy/conversations/${conversationId}/messages`, {
+            const res = await fetch(`/api/proxy/conversations/${cid}/messages`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -300,21 +334,17 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
             if (!res.ok) throw new Error('Failed to send message');
             const savedMessage = await res.json();
 
-            // Update the pending message with real ID and 'sent' status
             mutate((current) => {
                 if (!current) return current;
                 return current.map(m =>
-                    m.id === tempId
-                        ? { ...m, id: savedMessage.id, status: 'sent' as const }
-                        : m
+                    m.id === tempId ? { ...m, id: savedMessage.id, status: 'sent' as const } : m
                 );
             }, false);
 
-            // 2. Also save to Firestore for real-time sync
             const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
             const { db } = await import('@/lib/firebase');
 
-            const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+            const messagesRef = collection(db, 'conversations', cid as string, 'messages');
             await addDoc(messagesRef, {
                 id: savedMessage.id,
                 content: messageContent,
@@ -329,11 +359,9 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
                 } : null,
                 created_at: serverTimestamp()
             });
-
-            console.log('[Firestore] Message written successfully');
+            onMessageSent?.();
         } catch (error) {
             console.error("Failed to send", error);
-            // Remove pending message on error
             mutate((current) => current?.filter(m => m.id !== tempId), false);
         } finally {
             setIsSending(false);
@@ -366,11 +394,12 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
     };
 
     const handleClearChat = async () => {
-        if (!conversationId || !window.confirm("Are you sure you want to clear all messages? This cannot be undone.")) return;
+        if (!activeCid || !window.confirm("Are you sure you want to clear all messages? This cannot be undone.")) return;
         
+        setIsClearing(true);
         try {
             // 1. Backend PostgreSQL clear
-            const res = await fetch(`/api/proxy/conversations/${conversationId}/clear`, { method: 'DELETE' });
+            const res = await fetch(`/api/proxy/conversations/${activeCid}/clear`, { method: 'DELETE' });
             if (!res.ok) throw new Error("Failed to clear chat in DB");
 
             // 2. Local state clear
@@ -380,7 +409,7 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
             // 3. Firestore clear (simplified batch delete)
             const { collection, getDocs, writeBatch, query } = await import('firebase/firestore');
             const { db } = await import('@/lib/firebase');
-            const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+            const messagesRef = collection(db, 'conversations', activeCid, 'messages');
             const snapshot = await getDocs(query(messagesRef));
             
             const batch = writeBatch(db);
@@ -388,18 +417,22 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
             await batch.commit();
 
             console.log('[Clear] Chat history cleared successfully');
+            onMessageSent?.(); // Update preview
         } catch (error) {
             console.error("Failed to clear chat:", error);
             alert("Failed to clear chat. Please try again.");
+        } finally {
+            setIsClearing(false);
         }
     };
 
     const handleDeleteChat = async () => {
-        if (!conversationId || !window.confirm("Are you sure you want to delete this conversation? All messages will be lost.")) return;
+        if (!activeCid || !window.confirm("Are you sure you want to delete this conversation? All messages will be lost.")) return;
 
+        setIsDeleting(true);
         try {
             // 1. Backend PostgreSQL delete
-            const res = await fetch(`/api/proxy/conversations/${conversationId}`, { method: 'DELETE' });
+            const res = await fetch(`/api/proxy/conversations/${activeCid}`, { method: 'DELETE' });
             if (!res.ok) throw new Error("Failed to delete conversation in DB");
 
             // 2. Firestore delete (cascading delete for messages handled by client or just cleanup)
@@ -407,17 +440,18 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
             const { db } = await import('@/lib/firebase');
             
             // Delete messages first
-            const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+            const messagesRef = collection(db, 'conversations', activeCid, 'messages');
             const snapshot = await getDocs(query(messagesRef));
             const batch = writeBatch(db);
             snapshot.forEach(child => batch.delete(child.ref));
             await batch.commit();
 
             // Delete conversation doc if it exists
-            const convRef = doc(db, 'conversations', conversationId);
+            const convRef = doc(db, 'conversations', activeCid);
             await deleteDoc(convRef);
 
             setShowMoreMenu(false);
+            onMessageSent?.(); // Update previews
             onClose?.(); // Close the modal / navigate away
             
             // Trigger inbox refresh
@@ -427,6 +461,8 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
         } catch (error) {
             console.error("Failed to delete chat:", error);
             alert("Failed to delete chat. Please try again.");
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -460,11 +496,11 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="flex items-center gap-1">
                     {/* More Actions Menu */}
                     <div className="relative">
-                        <button 
+                        <button
                             onClick={() => setShowMoreMenu(!showMoreMenu)}
                             className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-all"
                             title="More actions"
@@ -474,24 +510,34 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
 
                         {showMoreMenu && (
                             <>
-                                <div 
-                                    className="fixed inset-0 z-[100]" 
+                                <div
+                                    className="fixed inset-0 z-[100]"
                                     onClick={() => setShowMoreMenu(false)}
                                 />
                                 <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl p-1 z-[110] animate-in fade-in zoom-in-95 duration-100">
                                     <button
                                         onClick={handleClearChat}
-                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-colors"
+                                        disabled={isClearing || isDeleting}
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-colors disabled:opacity-50"
                                     >
-                                        <Eraser size={16} />
-                                        Clear History
+                                        {isClearing ? (
+                                            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                            <Eraser size={16} />
+                                        )}
+                                        {isClearing ? 'Clearing...' : 'Clear History'}
                                     </button>
                                     <button
                                         onClick={handleDeleteChat}
-                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors"
+                                        disabled={isClearing || isDeleting}
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors disabled:opacity-50"
                                     >
-                                        <Trash2 size={16} />
-                                        Delete Chat
+                                        {isDeleting ? (
+                                            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                            <Trash2 size={16} />
+                                        )}
+                                        {isDeleting ? 'Deleting...' : 'Delete Chat'}
                                     </button>
                                 </div>
                             </>
@@ -526,10 +572,15 @@ export default function ChatInterface({ conversationId, otherUserName, onClose }
                             </div>
                         ))}
                     </div>
-                ) : messages?.length === 0 ? (
+                ) : (messages?.length === 0 || (!activeCid && !isLoading)) ? (
                     <div className="text-center py-10 opacity-50">
                         <Avatar name={otherUserName || "?"} size="lg" className="mx-auto mb-4" />
-                        <p className="text-sm text-gray-400">Start the conversation with {otherUserName}</p>
+                        <p className="text-sm text-gray-400">
+                            {!activeCid 
+                                ? `Start a new conversation with ${otherUserName || 'this user'}` 
+                                : `No previous messages with ${otherUserName || 'this user'}`
+                            }
+                        </p>
                     </div>
                 ) : null}
 

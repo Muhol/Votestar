@@ -1,16 +1,12 @@
 "use client";
 
-import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { fetcher } from '../../lib/api';
 import { useAuth } from '../components/AuthProvider';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { Plus, Users, ShieldCheck, ArrowRight, Loader2, CheckCircle2, MessageSquare, Heart } from 'lucide-react';
+import { Plus, Users, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
-import VerifiedBadge from '../components/VerifiedBadge';
-import FollowButton from '../components/FollowButton';
-import Avatar from '../components/Avatar';
 import FeedItem from '../components/FeedItem';
 
 export default function ProposalHubPage() {
@@ -44,7 +40,7 @@ export default function ProposalHubPage() {
                         </div>
                         <h1 className="text-3xl font-bold text-black dark:text-white"> Community Proposals </h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Shape the future Wall. Every global category starts with a citizen's idea.
+                            Shape the future Wall. Every global category starts with a citizen&apos;s idea.
                         </p>
                     </div>
 
@@ -76,7 +72,7 @@ export default function ProposalHubPage() {
                                     userName={item.creator_name || 'System'}
                                     userType={item.creator_type}
                                     isVerified={item.creator_verified}
-                                    timestamp={new Date(item.created_at || Date.now()).toLocaleDateString()}
+                                    timestamp={new Date(item.created_at || 0).toLocaleDateString()}
                                     content={
                                         <div className="space-y-3">
                                             <h3 className="text-xl font-bold text-black dark:text-white group-hover:text-accent transition-colors">
@@ -125,7 +121,7 @@ export default function ProposalHubPage() {
                             <ul className="space-y-4 text-xs font-medium text-gray-400">
                                 <li className="flex items-start gap-3">
                                     <div className="h-1 w-1 rounded-full bg-accent mt-1.5 shrink-0"></div>
-                                    <span>Citizens & Orgs can propose. Orgs activate instantly.</span>
+                                    <span>Citizens &amp; Orgs can propose. Orgs activate instantly.</span>
                                 </li>
                                 <li className="flex items-start gap-3">
                                     <div className="h-1 w-1 rounded-full bg-accent mt-1.5 shrink-0"></div>

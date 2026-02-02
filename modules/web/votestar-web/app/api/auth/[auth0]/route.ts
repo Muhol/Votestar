@@ -20,7 +20,7 @@ export async function GET(
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.ok) {
           const metadata = await response.json();
           // Merge metadata into user profile
@@ -35,14 +35,15 @@ export async function GET(
       } catch (err) {
         console.error("Profile metadata enrichment failed:", err);
       }
-      
+
       // Fallback to basic profile if backend fails
       return NextResponse.json(session.user);
     }
 
     return await auth0.middleware(request);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Auth route error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal Auth Error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

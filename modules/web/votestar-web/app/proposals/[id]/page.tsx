@@ -9,10 +9,11 @@ import Footer from '../../components/Footer';
 import UserCard from '../../components/UserCard';
 import Avatar from '../../components/Avatar';
 import { useState } from 'react';
-import { ChevronLeft, Heart, ShieldCheck, Users, Info, CheckCircle2, Star, MoreHorizontal, MessageSquare, Ban, Settings2 } from 'lucide-react';
+import { ChevronLeft, Heart, ShieldCheck, Info, CheckCircle2, Star, MoreHorizontal, MessageSquare, Settings2 } from 'lucide-react';
 import Link from 'next/link';
 import BlockButton from '../../components/BlockButton';
 import CommentModal from '../../components/CommentModal';
+import ChatModal from '../../components/ChatModal';
 
 export default function ProposalDetailPage() {
     const params = useParams();
@@ -22,6 +23,23 @@ export default function ProposalDetailPage() {
     const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
     const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+
+    // Chat Modal State
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+    const [recipientId, setRecipientId] = useState<string | null>(null);
+    const [otherUserName, setOtherUserName] = useState<string | undefined>();
+
+    const handleOpenChat = (userId: string, userName?: string) => {
+        if (!user) {
+            router.push('/login');
+            return;
+        }
+
+        setOtherUserName(userName);
+        setRecipientId(userId);
+        setIsChatOpen(true);
+    };
 
     const { data: proposal, isLoading } = useSWR(`/proposals/${id}`, fetcher);
 
@@ -45,7 +63,7 @@ export default function ProposalDetailPage() {
 
     const handleToggleComments = async () => {
         if (!user || !proposal || isUpdatingSettings) return;
-        
+
         setIsUpdatingSettings(true);
         try {
             const newValue = !proposal.comments_disabled;
@@ -126,72 +144,74 @@ export default function ProposalDetailPage() {
                                 {proposal.name}
                             </h1>
 
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="flex-grow">
-                                <UserCard
-                                    userId={proposal.creator_id || 'system'}
-                                    name={proposal.creator_name || 'System'}
-                                    userType={proposal.creator_type}
-                                    isVerified={proposal.creator_verified}
-                                    timestamp={`Proposed on ${new Date(proposal.created_at).toLocaleDateString()}`}
-                                    showFollowButton
-                                />
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex-grow">
+                                    <UserCard
+                                        userId={proposal.creator_id || 'system'}
+                                        name={proposal.creator_name || 'System'}
+                                        userType={proposal.creator_type}
+                                        isVerified={proposal.creator_verified}
+                                        timestamp={`Proposed on ${new Date(proposal.created_at).toLocaleDateString()}`}
+                                        showFollowButton
+                                        onMessage={handleOpenChat}
+                                        isMessageLoading={false}
+                                    />
+                                </div>
+
+                                {/* More Menu for Proposal */}
+                                {user && proposal.creator_id && user.id !== proposal.creator_id && (
+                                    <div className="relative pt-4 pr-4">
+                                        <button
+                                            onClick={() => setShowMoreMenu(!showMoreMenu)}
+                                            className="p-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-full text-gray-400 hover:text-black dark:hover:text-white transition-all shadow-sm"
+                                        >
+                                            <MoreHorizontal size={20} />
+                                        </button>
+
+                                        {showMoreMenu && (
+                                            <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl p-2 z-50">
+                                                <div className="px-4 py-2 border-b border-gray-50 dark:border-gray-900 mb-1">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Creator Actions</p>
+                                                </div>
+                                                <BlockButton
+                                                    targetUserId={proposal.creator_id}
+                                                    isBlocked={proposal.is_blocked}
+                                                    onUpdate={() => setShowMoreMenu(false)}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Owner Controls */}
+                                {user && proposal.creator_id && user.id === proposal.creator_id && (
+                                    <div className="relative pt-4 pr-4">
+                                        <button
+                                            onClick={() => setShowMoreMenu(!showMoreMenu)}
+                                            className="p-2 bg-accent/10 border border-accent/20 rounded-full text-accent hover:bg-accent/20 transition-all shadow-sm"
+                                        >
+                                            <Settings2 size={20} />
+                                        </button>
+
+                                        {showMoreMenu && (
+                                            <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl p-2 z-50">
+                                                <div className="px-4 py-2 border-b border-gray-50 dark:border-gray-900 mb-1">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Proposal Settings</p>
+                                                </div>
+                                                <button
+                                                    onClick={handleToggleComments}
+                                                    disabled={isUpdatingSettings}
+                                                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-colors text-sm font-bold text-gray-600 dark:text-gray-300"
+                                                >
+                                                    <span>{proposal.comments_disabled ? "Enable Comments" : "Disable Comments"}</span>
+                                                    <MessageSquare size={16} className={proposal.comments_disabled ? "text-green-500" : "text-red-500"} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
-
-                            {/* More Menu for Proposal */}
-                            {user && proposal.creator_id && user.id !== proposal.creator_id && (
-                                <div className="relative pt-4 pr-4">
-                                    <button 
-                                        onClick={() => setShowMoreMenu(!showMoreMenu)}
-                                        className="p-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-full text-gray-400 hover:text-black dark:hover:text-white transition-all shadow-sm"
-                                    >
-                                        <MoreHorizontal size={20} />
-                                    </button>
-
-                                    {showMoreMenu && (
-                                        <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl p-2 z-50">
-                                            <div className="px-4 py-2 border-b border-gray-50 dark:border-gray-900 mb-1">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Creator Actions</p>
-                                            </div>
-                                            <BlockButton 
-                                                targetUserId={proposal.creator_id} 
-                                                isBlocked={proposal.is_blocked} 
-                                                onUpdate={() => setShowMoreMenu(false)}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Owner Controls */}
-                            {user && proposal.creator_id && user.id === proposal.creator_id && (
-                                <div className="relative pt-4 pr-4">
-                                    <button 
-                                        onClick={() => setShowMoreMenu(!showMoreMenu)}
-                                        className="p-2 bg-accent/10 border border-accent/20 rounded-full text-accent hover:bg-accent/20 transition-all shadow-sm"
-                                    >
-                                        <Settings2 size={20} />
-                                    </button>
-
-                                    {showMoreMenu && (
-                                        <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl p-2 z-50">
-                                            <div className="px-4 py-2 border-b border-gray-50 dark:border-gray-900 mb-1">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Proposal Settings</p>
-                                            </div>
-                                            <button 
-                                                onClick={handleToggleComments}
-                                                disabled={isUpdatingSettings}
-                                                className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 rounded-2xl transition-colors text-sm font-bold text-gray-600 dark:text-gray-300"
-                                            >
-                                                <span>{proposal.comments_disabled ? "Enable Comments" : "Disable Comments"}</span>
-                                                <MessageSquare size={16} className={proposal.comments_disabled ? "text-green-500" : "text-red-500"} />
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </section>
+                        </section>
 
                         {/* Description */}
                         <section className="bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-3xl p-8">
@@ -205,7 +225,7 @@ export default function ProposalDetailPage() {
                         <section>
                             <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6 px-1">Recent Supporters</h2>
                             <div className="grid grid-cols-4 sm:grid-cols-6 gap-4">
-                                {proposal.supporters?.map((sup: any) => (
+                                {((proposal.supporters as any[]) || []).map((sup: { id: string, name: string }) => (
                                     <Link
                                         key={sup.id}
                                         href={`/profile/${sup.id}`}
@@ -300,12 +320,22 @@ export default function ProposalDetailPage() {
             </main>
 
             <Footer />
-            <CommentModal 
-                isOpen={isCommentModalOpen} 
-                onClose={() => setIsCommentModalOpen(false)} 
+            <CommentModal
+                isOpen={isCommentModalOpen}
+                onClose={() => setIsCommentModalOpen(false)}
                 proposalId={String(id)}
                 proposalName={proposal.name}
                 commentsDisabled={proposal.comments_disabled}
+            />
+
+            {/* Chat Modal */}
+            <ChatModal
+                isOpen={isChatOpen}
+                onClose={() => setIsChatOpen(false)}
+                conversationId={activeConversationId}
+                recipientId={recipientId || undefined}
+                otherUserName={otherUserName}
+                onConversationCreated={(id) => setActiveConversationId(id)}
             />
         </div>
     );

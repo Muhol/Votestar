@@ -27,7 +27,7 @@ export default function WelcomePage() {
                         </h1>
 
                         <p className="text-lg md:text-2xl text-gray-500 dark:text-gray-400 font-medium max-w-3xl mb-12">
-                            The world's first financial-grade voting protocol for global categories.
+                            The world&apos;s first financial-grade voting protocol for global categories.
                             Music, Tech, Sports—your voice, verified forever.
                         </p>
 

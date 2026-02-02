@@ -18,6 +18,7 @@ interface UserCardProps {
     timestamp?: string;
     compact?: boolean;
     onMessage?: (userId: string, userName: string) => void;
+    isMessageLoading?: boolean;
 }
 
 export default function UserCard({
@@ -30,7 +31,8 @@ export default function UserCard({
     showFollowButton = true,
     timestamp,
     compact = false,
-    onMessage
+    onMessage,
+    isMessageLoading = false
 }: UserCardProps) {
     const router = useRouter();
     return (
@@ -69,16 +71,26 @@ export default function UserCard({
                 {!compact && (
                     <button 
                         onClick={() => {
+                            if (isMessageLoading) return;
                             if (onMessage) {
                                 onMessage(userId, name);
                             } else {
                                 router.push(`/messages?start_dm=${userId}`);
                             }
                         }}
-                        className="p-2 text-gray-400 hover:text-accent hover:bg-accent/10 rounded-full transition-colors"
-                        title="Send Message"
+                        disabled={isMessageLoading}
+                        className={`p-2 rounded-full transition-all ${
+                            isMessageLoading 
+                            ? 'bg-accent/5 text-accent animate-pulse' 
+                            : 'text-gray-400 hover:text-accent hover:bg-accent/10'
+                        }`}
+                        title={isMessageLoading ? "Initializing Chat..." : "Send Message"}
                     >
-                        <MessageSquare size={20} />
+                        {isMessageLoading ? (
+                            <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                            <MessageSquare size={20} />
+                        )}
                     </button>
                 )}
             </div>

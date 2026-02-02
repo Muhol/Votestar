@@ -5,12 +5,26 @@ import ChatInterface from './ChatInterface';
 import { Minimize2 } from 'lucide-react';
 
 interface ChatModalProps {
-    conversationId: string;
+    isOpen: boolean;
+    conversationId: string | null;
+    recipientId?: string;
     otherUserName?: string;
     onClose: () => void;
+    onConversationCreated?: (id: string) => void;
+    onMessageSent?: () => void;
 }
 
-export default function ChatModal({ conversationId, otherUserName, onClose }: ChatModalProps) {
+export default function ChatModal({ 
+    isOpen, 
+    conversationId, 
+    recipientId, 
+    otherUserName, 
+    onClose,
+    onConversationCreated,
+    onMessageSent
+}: ChatModalProps) {
+    if (!isOpen || (!conversationId && !recipientId)) return null;
+
     return (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 md:flex">
             {/* Backdrop with Blur */}
@@ -35,8 +49,11 @@ export default function ChatModal({ conversationId, otherUserName, onClose }: Ch
 
                 <ChatInterface
                     conversationId={conversationId}
+                    recipientId={recipientId}
                     otherUserName={otherUserName}
                     onClose={onClose}
+                    onConversationCreated={onConversationCreated}
+                    onMessageSent={onMessageSent}
                 />
             </div>
         </div>
